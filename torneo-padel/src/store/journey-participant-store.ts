@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import type { CreateJourneyParticipantInput, JourneyParticipant } from '@/types';
 import {
   createJourneyParticipant,
+  createJourneyParticipantsBulk,
   deleteJourneyParticipant,
   getParticipantsByJourneyId,
 } from '@/services/journeyParticipantService';
@@ -14,6 +15,7 @@ type JourneyParticipantStore = {
   deleteParticipant: (participantId: number) => Promise<void>;
   addParticipant: (participant: JourneyParticipant) => void;
   removeParticipant: (participantId: number) => void;
+  createParticipantsBulk: (participants: CreateJourneyParticipantInput[]) => Promise<JourneyParticipant[]>;
 };
 
 export const useJourneyParticipantStore = create<JourneyParticipantStore>((set) => ({
@@ -65,4 +67,15 @@ export const useJourneyParticipantStore = create<JourneyParticipantStore>((set) 
       ),
     }));
   },
+
+  createParticipantsBulk: async (participantsData) => {
+  try {
+    const newParticipants = await createJourneyParticipantsBulk(participantsData);
+    set((state) => ({ participants: [...state.participants, ...newParticipants] }));
+    return newParticipants;
+  } catch (error) {
+    console.error(error);
+    throw error;
+  }
+},
 }));

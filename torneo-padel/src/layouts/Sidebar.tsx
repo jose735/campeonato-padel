@@ -8,9 +8,9 @@ type NavItem = {
 const navItems: NavItem[] = [
   { label: 'Inicio', path: '/' },
   { label: 'Jugadores', path: '/jugadores' },
-  { label: 'Torneos' }, // próximamente
-  { label: 'Jornadas' }, // próximamente
-  { label: 'Ranking' }, // próximamente
+  { label: 'Torneos', path: '/torneos' },
+  { label: 'Jornadas', path: '/jornadas' },
+  { label: 'Ranking', path: '/ranking' },
 ];
 
 export default function Sidebar() {

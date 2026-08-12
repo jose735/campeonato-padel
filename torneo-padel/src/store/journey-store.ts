@@ -1,12 +1,13 @@
-import { create } from 'zustand';
-import type { CreateJourneyInput, Journey } from '@/types';
+import { create } from "zustand";
+import type { CreateJourneyInput, Journey } from "@/types";
 import {
   createJourney,
   deleteJourney,
+  finishJourney,
   getJourneys,
   getJourneysByTournamentId,
   updateJourney,
-} from '@/services/journeyService';
+} from "@/services/journeyService";
 
 type JourneyStore = {
   journeys: Journey[];
@@ -19,6 +20,7 @@ type JourneyStore = {
   addJourney: (journey: Journey) => void;
   editJourney: (journey: Journey) => void;
   removeJourney: (journeyId: number) => void;
+  finishJourney: (journeyId: number) => Promise<void>;
 };
 
 export const useJourneyStore = create<JourneyStore>((set) => ({
@@ -78,7 +80,9 @@ export const useJourneyStore = create<JourneyStore>((set) => ({
 
   addJourney: (journey) => {
     set((state) => {
-      const exists = state.journeys.some((current) => current.id === journey.id);
+      const exists = state.journeys.some(
+        (current) => current.id === journey.id,
+      );
       if (exists) return state;
       return { journeys: [...state.journeys, journey] };
     });
@@ -86,7 +90,9 @@ export const useJourneyStore = create<JourneyStore>((set) => ({
 
   editJourney: (journey) => {
     set((state) => ({
-      journeys: state.journeys.map((current) => (current.id === journey.id ? journey : current)),
+      journeys: state.journeys.map((current) =>
+        current.id === journey.id ? journey : current,
+      ),
     }));
   },
 
@@ -94,5 +100,15 @@ export const useJourneyStore = create<JourneyStore>((set) => ({
     set((state) => ({
       journeys: state.journeys.filter((journey) => journey.id !== journeyId),
     }));
+  },
+
+  finishJourney: async (journeyId) => {
+    try {
+      const updated = await finishJourney(journeyId);
+      useJourneyStore.getState().editJourney(updated);
+    } catch (error) {
+      console.error(error);
+      throw error;
+    }
   },
 }));

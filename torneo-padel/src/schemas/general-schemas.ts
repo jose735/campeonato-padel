@@ -15,7 +15,7 @@ export const createTournamentSchema = z.object({
 export type CreateTournamentFormData = z.infer<typeof createTournamentSchema>;
 
 export const createJourneySchema = z.object({
-  tournamentId: z.number(),
+  tournamentId: z.number({ message: 'Selecciona un torneo' }),
   journeyDate: z.string().min(1, 'La fecha es requerida'),
   fieldsQuantity: z.number().int().min(1, 'Debe haber al menos 1 cancha'),
   scoreLimit: z.number().int().min(1, 'El límite de puntaje debe ser mayor a 0'),

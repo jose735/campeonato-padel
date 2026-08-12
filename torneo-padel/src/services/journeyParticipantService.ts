@@ -47,6 +47,24 @@ export async function createJourneyParticipant(
   return mapRecordToParticipant(data as JourneyParticipantRecord);
 }
 
+export async function createJourneyParticipantsBulk(
+  inputs: CreateJourneyParticipantInput[]
+): Promise<JourneyParticipant[]> {
+  const { data, error } = await supabase
+    .from(TABLE)
+    .insert(
+      inputs.map((input) => ({
+        journey_id: input.journeyId,
+        player_id: input.playerId,
+        seed: input.seed,
+      }))
+    )
+    .select();
+
+  if (error) throw error;
+  return (data as JourneyParticipantRecord[]).map(mapRecordToParticipant);
+}
+
 export async function deleteJourneyParticipant(id: number): Promise<void> {
   const { error } = await supabase.from(TABLE).delete().eq('id', id);
   if (error) throw error;

@@ -2,7 +2,7 @@ import type { Player } from '@/types';
 
 interface PlayerListProps {
   players: Player[];
-  onDelete: (id: string) => void;
+  onDelete: (id: number) => void;
 }
 
 export default function PlayerList({ players, onDelete }: PlayerListProps) {

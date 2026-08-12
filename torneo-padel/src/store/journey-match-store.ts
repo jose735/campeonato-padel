@@ -1,15 +1,18 @@
-import { create } from 'zustand';
-import type { CreateJourneyMatchInput, JourneyMatch } from '@/types';
+import { create } from "zustand";
+import type { CreateJourneyMatchInput, JourneyMatch } from "@/types";
 import {
   createJourneyMatch,
+  createJourneyMatchesBulk,
   deleteJourneyMatch,
+  getJourneyIdsWithMatches,
   getMatchesByJourneyId,
   updateJourneyMatch,
-} from '@/services/journeyMatchService';
+} from "@/services/journeyMatchService";
 
 type JourneyMatchStore = {
   matches: JourneyMatch[];
   isLoading: boolean;
+  journeyIdsWithMatches: number[];
   fetchMatchesByJourneyId: (journeyId: number) => Promise<void>;
   createMatch: (match: CreateJourneyMatchInput) => Promise<void>;
   updateMatch: (id: number, match: CreateJourneyMatchInput) => Promise<void>;
@@ -17,12 +20,16 @@ type JourneyMatchStore = {
   addMatch: (match: JourneyMatch) => void;
   editMatch: (match: JourneyMatch) => void;
   removeMatch: (matchId: number) => void;
+  createMatchesBulk: (
+    matches: CreateJourneyMatchInput[],
+  ) => Promise<JourneyMatch[]>;
+  fetchJourneyIdsWithMatches: () => Promise<void>;
 };
 
 export const useJourneyMatchStore = create<JourneyMatchStore>((set) => ({
   matches: [],
   isLoading: false,
-
+  journeyIdsWithMatches: [],
   fetchMatchesByJourneyId: async (journeyId) => {
     set({ isLoading: true });
     try {
@@ -72,7 +79,9 @@ export const useJourneyMatchStore = create<JourneyMatchStore>((set) => ({
 
   editMatch: (match) => {
     set((state) => ({
-      matches: state.matches.map((current) => (current.id === match.id ? match : current)),
+      matches: state.matches.map((current) =>
+        current.id === match.id ? match : current,
+      ),
     }));
   },
 
@@ -80,5 +89,25 @@ export const useJourneyMatchStore = create<JourneyMatchStore>((set) => ({
     set((state) => ({
       matches: state.matches.filter((match) => match.id !== matchId),
     }));
+  },
+
+  createMatchesBulk: async (matchesData) => {
+    try {
+      const newMatches = await createJourneyMatchesBulk(matchesData);
+      set((state) => ({ matches: [...state.matches, ...newMatches] }));
+      return newMatches;
+    } catch (error) {
+      console.error(error);
+      throw error;
+    }
+  },
+
+  fetchJourneyIdsWithMatches: async () => {
+    try {
+      const journeyIdsWithMatches = await getJourneyIdsWithMatches();
+      set({ journeyIdsWithMatches });
+    } catch (error) {
+      console.error(error);
+    }
   },
 }));

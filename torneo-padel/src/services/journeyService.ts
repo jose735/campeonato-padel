@@ -10,6 +10,7 @@ function mapJourneyRecordToJourney(record: JourneyRecord): Journey {
     journeyDate: record.journey_date,
     fieldsQuantity: record.fields_quantity,
     scoreLimit: record.score_limit,
+    status: record.status ?? 'open',
     createdAt: record.created_at,
   };
 }
@@ -60,6 +61,18 @@ export async function updateJourney(id: number, input: CreateJourneyInput): Prom
       fields_quantity: input.fieldsQuantity,
       score_limit: input.scoreLimit,
     })
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return mapJourneyRecordToJourney(data as JourneyRecord);
+}
+
+export async function finishJourney(id: number): Promise<Journey> {
+  const { data, error } = await supabase
+    .from(TABLE)
+    .update({ status: 'finished' })
     .eq('id', id)
     .select()
     .single();

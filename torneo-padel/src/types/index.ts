@@ -39,12 +39,15 @@ export type CreateTournamentInput = {
   description: string;
 };
 
+export type JourneyStatus = 'open' | 'finished';
+
 export type Journey = {
   id: number;
   tournamentId: number;
   journeyDate: string;
   fieldsQuantity: number;
   scoreLimit: number;
+  status: JourneyStatus;
   createdAt: string;
 };
 
@@ -54,6 +57,7 @@ export type JourneyRecord = {
   journey_date: string;
   fields_quantity: number;
   score_limit: number;
+  status: JourneyStatus;
   created_at: string;
 };
 
