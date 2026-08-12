@@ -18,6 +18,7 @@ function mapPlayerRecordToPlayer(record: PlayerRecord): Player {
     nickname,
     displayName: buildDisplayName(record.first_name, record.last_name, nickname),
     createdAt: record.created_at,
+    updatedAt: record.updated_at,
   };
 }
 
@@ -46,7 +47,7 @@ export async function createPlayer(input: CreatePlayerInput): Promise<Player> {
   return mapPlayerRecordToPlayer(data as PlayerRecord);
 }
 
-export async function updatePlayer(id: string, input: CreatePlayerInput): Promise<Player> {
+export async function updatePlayer(id: number, input: CreatePlayerInput): Promise<Player> {
   const { data, error } = await supabase
     .from(TABLE)
     .update({
@@ -62,7 +63,7 @@ export async function updatePlayer(id: string, input: CreatePlayerInput): Promis
   return mapPlayerRecordToPlayer(data as PlayerRecord);
 }
 
-export async function deletePlayer(id: string): Promise<void> {
+export async function deletePlayer(id: number): Promise<void> {
   const { error } = await supabase.from(TABLE).delete().eq('id', id);
   if (error) throw error;
 }
