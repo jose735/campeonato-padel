@@ -15,6 +15,7 @@ function mapRecordToJourneyMatch(record: JourneyMatchRecord): JourneyMatch {
     scoreA: record.score_a,
     scoreB: record.score_b,
     pointsObtained: record.points_obtained,
+    fieldNumber: record.field_number,
     createdAt: record.created_at,
   };
 }
@@ -77,6 +78,7 @@ export async function createJourneyMatch(input: CreateJourneyMatchInput): Promis
       score_a: input.scoreA,
       score_b: input.scoreB,
       points_obtained: input.pointsObtained,
+      field_number: input.fieldNumber,
     })
     .select()
     .single();
@@ -101,6 +103,7 @@ export async function createJourneyMatchesBulk(
         score_a: input.scoreA,
         score_b: input.scoreB,
         points_obtained: input.pointsObtained,
+        field_number: input.fieldNumber,
       }))
     )
     .select();
@@ -124,6 +127,7 @@ export async function updateJourneyMatch(
       score_a: input.scoreA,
       score_b: input.scoreB,
       points_obtained: input.pointsObtained,
+      field_number: input.fieldNumber,
     })
     .eq('id', id)
     .select()

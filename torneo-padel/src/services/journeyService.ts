@@ -10,6 +10,7 @@ function mapJourneyRecordToJourney(record: JourneyRecord): Journey {
     journeyDate: record.journey_date,
     fieldsQuantity: record.fields_quantity,
     scoreLimit: record.score_limit,
+    maxPlayers: record.max_players,
     status: record.status ?? 'open',
     createdAt: record.created_at,
   };
@@ -44,6 +45,7 @@ export async function createJourney(input: CreateJourneyInput): Promise<Journey>
       journey_date: input.journeyDate,
       fields_quantity: input.fieldsQuantity,
       score_limit: input.scoreLimit,
+      max_players: input.maxPlayers,
     })
     .select()
     .single();
@@ -60,6 +62,7 @@ export async function updateJourney(id: number, input: CreateJourneyInput): Prom
       journey_date: input.journeyDate,
       fields_quantity: input.fieldsQuantity,
       score_limit: input.scoreLimit,
+      max_players: input.maxPlayers,
     })
     .eq('id', id)
     .select()

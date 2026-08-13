@@ -78,6 +78,7 @@ export default function JourneyDetailPage() {
       scoreA,
       scoreB,
       pointsObtained,
+      fieldNumber: match.fieldNumber ?? 1,
     };
 
     await updateMatch(matchId, payload);

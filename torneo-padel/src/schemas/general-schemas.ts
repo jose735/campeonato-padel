@@ -20,14 +20,19 @@ export const createJourneySchema = z.object({
   tournamentId: z.number({ message: 'Selecciona un torneo' }),
   journeyDate: z.string().min(1, 'La fecha es requerida'),
   fieldsQuantity: z.coerce
-    .number({ message: 'Seleccioná 2 o 3 canchas' })
+    .number()
     .refine((v) => v === 2 || v === 3, {
       message: 'Seleccioná 2 o 3 canchas',
     }),
   scoreLimit: z.coerce
-    .number({ message: 'Seleccioná 16, 24 o 32 puntos' })
+    .number()
     .refine((v) => v === 16 || v === 24 || v === 32, {
       message: 'Seleccioná 16, 24 o 32 puntos',
+    }),
+  maxPlayers: z.coerce
+    .number()
+    .refine((v) => v === 8 || v === 12, {
+      message: 'Seleccioná 8 o 12 jugadores',
     }),
 });
 

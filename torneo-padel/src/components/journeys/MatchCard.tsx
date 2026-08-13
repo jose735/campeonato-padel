@@ -196,9 +196,11 @@ export default function MatchCard({
   return (
     <div className="overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-sm transition-shadow hover:shadow-md">
       <div className="flex items-center justify-between border-b border-neutral-100 px-4 py-2">
-        <span className="text-xs font-medium text-neutral-400">
-          Partido #{match.id}
-        </span>
+        {match.fieldNumber != null && (
+          <span className="rounded-full bg-primary-50 px-2.5 py-0.5 text-xs font-medium text-primary-700">
+            Cancha #{match.fieldNumber}
+          </span>
+        )}
         {isLocked ? (
           <span className="rounded-full bg-neutral-100 px-2.5 py-0.5 text-xs font-medium text-neutral-500">
             Finalizado

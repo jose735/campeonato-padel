@@ -1,6 +1,8 @@
 import { supabase } from '@/lib/supabase';
 import type { GeneratedMatch } from '@/lib/roundRobinGenerator';
 
+type MatchWithCourt = GeneratedMatch & { fieldNumber: number };
+
 type ParticipantPayload = {
   journey_id: number;
   player_id: number;
@@ -17,12 +19,13 @@ type MatchPayload = {
   score_a: number;
   score_b: number;
   points_obtained: number;
+  field_number: number;
 };
 
 export async function createJourneyLineup(
   journeyId: number,
   participants: { playerId: number; seed: number }[],
-  matches: GeneratedMatch[]
+  matches: MatchWithCourt[]
 ): Promise<void> {
   const participantsPayload: ParticipantPayload[] = participants.map((p) => ({
     journey_id: journeyId,
@@ -40,6 +43,7 @@ export async function createJourneyLineup(
     score_a: 0,
     score_b: 0,
     points_obtained: 0,
+    field_number: m.fieldNumber, 
   }));
 
   const { error } = await supabase.rpc('create_journey_lineup', {

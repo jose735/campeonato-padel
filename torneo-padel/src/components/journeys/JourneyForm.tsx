@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useForm, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Calendar, Hash, Target, Trophy } from "lucide-react";
+import { Calendar, Hash, Target, Trophy, Users } from "lucide-react";
 import {
   createJourneySchema,
   type CreateJourneyFormData,
@@ -23,18 +23,21 @@ export default function JourneyForm({
 }: JourneyFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const {
-  register,
-  handleSubmit,
-  reset,
-  formState: { errors },
-} = useForm<CreateJourneyFormData>({
-  resolver: zodResolver(createJourneySchema) as Resolver<CreateJourneyFormData>,
-  defaultValues: {
-    journeyDate: getTodayDateString(),
-    fieldsQuantity: 2,
-    scoreLimit: 24,
-  },
-});
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm<CreateJourneyFormData>({
+    resolver: zodResolver(
+      createJourneySchema,
+    ) as Resolver<CreateJourneyFormData>,
+    defaultValues: {
+      journeyDate: getTodayDateString(),
+      fieldsQuantity: 2,
+      scoreLimit: 24,
+      maxPlayers: 8,
+    },
+  });
 
   const onValid = async (data: CreateJourneyFormData) => {
     setIsSubmitting(true);
@@ -84,25 +87,35 @@ export default function JourneyForm({
       />
 
       <SelectField
-  label="Cantidad de canchas"
-  icon={Hash}
-  error={errors.fieldsQuantity?.message}
-  {...register('fieldsQuantity', { valueAsNumber: true })}
->
-  <option value={2}>2 canchas</option>
-  <option value={3}>3 canchas</option>
-</SelectField>
+        label="Cantidad de canchas"
+        icon={Hash}
+        error={errors.fieldsQuantity?.message}
+        {...register("fieldsQuantity", { valueAsNumber: true })}
+      >
+        <option value={2}>2 canchas</option>
+        <option value={3}>3 canchas</option>
+      </SelectField>
 
       <SelectField
-  label="Puntos límite por partido"
-  icon={Target}
-  error={errors.scoreLimit?.message}
-  {...register('scoreLimit', { valueAsNumber: true })}
->
-  <option value={16}>16 puntos</option>
-  <option value={24}>24 puntos</option>
-  <option value={32}>32 puntos</option>
-</SelectField>
+        label="Puntos límite por partido"
+        icon={Target}
+        error={errors.scoreLimit?.message}
+        {...register("scoreLimit", { valueAsNumber: true })}
+      >
+        <option value={16}>16 puntos</option>
+        <option value={24}>24 puntos</option>
+        <option value={32}>32 puntos</option>
+      </SelectField>
+
+      <SelectField
+        label="Máximo de jugadores"
+        icon={Users}
+        error={errors.maxPlayers?.message}
+        {...register("maxPlayers", { valueAsNumber: true })}
+      >
+        <option value={8}>8 jugadores</option>
+        <option value={12}>12 jugadores</option>
+      </SelectField>
 
       <div className="flex flex-col justify-end gap-2 sm:col-span-2">
         <Button

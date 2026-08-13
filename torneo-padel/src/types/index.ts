@@ -47,6 +47,7 @@ export type Journey = {
   journeyDate: string;
   fieldsQuantity: number;
   scoreLimit: number;
+  maxPlayers: number;
   status: JourneyStatus;
   createdAt: string;
 };
@@ -57,6 +58,7 @@ export type JourneyRecord = {
   journey_date: string;
   fields_quantity: number;
   score_limit: number;
+  max_players: number;
   status: JourneyStatus;
   created_at: string;
 };
@@ -66,6 +68,7 @@ export type CreateJourneyInput = {
   journeyDate: string;
   fieldsQuantity: number;
   scoreLimit: number;
+  maxPlayers: number;
 };
 
 export type JourneyParticipant = {
@@ -101,6 +104,7 @@ export type JourneyMatch = {
   scoreA: number;
   scoreB: number;
   pointsObtained: number;
+  fieldNumber: number | null;
   createdAt: string;
 };
 
@@ -115,6 +119,7 @@ export type JourneyMatchRecord = {
   score_a: number;
   score_b: number;
   points_obtained: number;
+  field_number: number | null;
   created_at: string;
 };
 
@@ -128,4 +133,5 @@ export type CreateJourneyMatchInput = {
   scoreA: number;
   scoreB: number;
   pointsObtained: number;
+  fieldNumber: number;
 };

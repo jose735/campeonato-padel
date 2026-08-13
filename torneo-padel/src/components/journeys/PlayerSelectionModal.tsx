@@ -1,10 +1,12 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Search, X, Check, Loader2, Users } from 'lucide-react';
-import { usePlayerStore } from '@/store/player-store';
-import { setupJourneyLineup, type SeededPlayer } from '@/lib/journeySetup';
+import { useEffect, useMemo, useState } from "react";
+import { Search, X, Check, Loader2, Users } from "lucide-react";
+import { usePlayerStore } from "@/store/player-store";
+import { setupJourneyLineup, type SeededPlayer } from "@/lib/journeySetup";
 
 interface PlayerSelectionModalProps {
   journeyId: number;
+  maxPlayers: number;
+  fieldsQuantity: number;
   onClose: () => void;
   onSuccess: () => void;
 }
@@ -19,17 +21,19 @@ function shuffle<T>(array: T[]): T[] {
 }
 
 function initials(firstName: string, lastName: string): string {
-  return `${firstName[0] ?? ''}${lastName[0] ?? ''}`.toUpperCase();
+  return `${firstName[0] ?? ""}${lastName[0] ?? ""}`.toUpperCase();
 }
 
 export default function PlayerSelectionModal({
   journeyId,
+  maxPlayers,
+  fieldsQuantity,
   onClose,
   onSuccess,
 }: PlayerSelectionModalProps) {
   const { players, fetchPlayers } = usePlayerStore();
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -51,12 +55,16 @@ export default function PlayerSelectionModal({
   }, [players, search]);
 
   const toggleSelection = (playerId: number) => {
-    setSelectedIds((prev) =>
-      prev.includes(playerId) ? prev.filter((id) => id !== playerId) : [...prev, playerId]
-    );
+    setSelectedIds((prev) => {
+      if (prev.includes(playerId)) {
+        return prev.filter((id) => id !== playerId);
+      }
+      if (prev.length >= maxPlayers) return prev; // no deja pasar del límite
+      return [...prev, playerId];
+    });
   };
 
-  const isValidCount = selectedIds.length >= 4 && selectedIds.length % 4 === 0;
+  const isValidCount = selectedIds.length === maxPlayers;
   const remainder = selectedIds.length % 4;
 
   const handleSubmit = async () => {
@@ -71,7 +79,7 @@ export default function PlayerSelectionModal({
         seed: seedMap.get(playerId)!,
       }));
 
-      await setupJourneyLineup(journeyId, seededPlayers);
+      await setupJourneyLineup(journeyId, seededPlayers, fieldsQuantity);
       onSuccess();
       onClose();
     } catch (err) {
@@ -87,8 +95,12 @@ export default function PlayerSelectionModal({
         {/* Header */}
         <div className="flex items-center justify-between border-b border-neutral-100 px-5 py-4">
           <div>
-            <h3 className="text-base font-semibold text-neutral-800">Seleccionar jugadores</h3>
-            <p className="text-sm text-neutral-500">Elige un múltiplo de 4 para armar las rondas.</p>
+            <h3 className="text-base font-semibold text-neutral-800">
+              Seleccionar jugadores
+            </h3>
+            <p className="text-sm text-neutral-500">
+              Debés seleccionar exactamente {maxPlayers} jugadores.
+            </p>
           </div>
           <button
             onClick={onClose}
@@ -133,8 +145,8 @@ export default function PlayerSelectionModal({
                       onClick={() => toggleSelection(player.id)}
                       className={`flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2.5 text-left transition-colors ${
                         checked
-                          ? 'bg-primary-50 ring-1 ring-primary-200'
-                          : 'hover:bg-neutral-50'
+                          ? "bg-primary-50 ring-1 ring-primary-200"
+                          : "hover:bg-neutral-50"
                       }`}
                     >
                       <span className="flex min-w-0 items-center gap-3">
@@ -166,7 +178,7 @@ export default function PlayerSelectionModal({
           <div className="mb-3 flex items-center justify-between text-sm">
             <span className="inline-flex items-center gap-1.5 text-neutral-600">
               <Users size={14} />
-              {selectedIds.length} seleccionado{selectedIds.length === 1 ? '' : 's'}
+              {selectedIds.length} / {maxPlayers} seleccionados
             </span>
             {selectedIds.length > 0 && !isValidCount && (
               <span className="text-warning-700">
@@ -189,8 +201,12 @@ export default function PlayerSelectionModal({
               disabled={!isValidCount || isSubmitting}
               className="inline-flex items-center gap-1.5 rounded-lg bg-accent-500 px-4 py-2 text-sm font-semibold text-white hover:bg-accent-600 disabled:opacity-50 transition-colors"
             >
-              {isSubmitting ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
-              {isSubmitting ? 'Generando...' : 'Generar jornada'}
+              {isSubmitting ? (
+                <Loader2 size={14} className="animate-spin" />
+              ) : (
+                <Check size={14} />
+              )}
+              {isSubmitting ? "Generando..." : "Generar jornada"}
             </button>
           </div>
         </div>
