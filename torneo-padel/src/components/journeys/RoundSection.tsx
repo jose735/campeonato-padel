@@ -1,5 +1,5 @@
-import type { JourneyMatch, Player } from "@/types";
-import MatchCard from "./MatchCard";
+import type { JourneyMatch, Player } from '@/types';
+import MatchCard from './MatchCard';
 
 interface RoundSectionProps {
   round: number;
@@ -11,7 +11,7 @@ interface RoundSectionProps {
     matchId: number,
     scoreA: number,
     scoreB: number,
-    pointsObtained: number,
+    pointsObtained: number
   ) => Promise<void>;
 }
 
@@ -25,7 +25,7 @@ export default function RoundSection({
 }: RoundSectionProps) {
   return (
     <section className="flex flex-col gap-3">
-      <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-400">
+      <h3 className="text-sm font-semibold uppercase tracking-wide text-neutral-500">
         Ronda {round}
       </h3>
       <div className="flex flex-col gap-2">

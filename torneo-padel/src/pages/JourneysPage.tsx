@@ -21,16 +21,16 @@ export default function JourneysPage() {
   }, [fetchTournaments, fetchJourneys, fetchJourneyIdsWithMatches]);
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-8 lg:gap-6">
       <div>
-        <h2 className="text-2xl font-semibold mb-4">Jornadas</h2>
+        <h2 className="text-2xl font-semibold text-neutral-800 mb-4">Jornadas</h2>
         <JourneyForm tournaments={tournaments} onSubmit={createJourney} />
       </div>
 
       <div>
-        <h3 className="text-lg font-medium mb-2">Listado</h3>
+        <h3 className="text-lg font-medium text-neutral-800 mb-2">Listado</h3>
         {isLoading ? (
-          <p className="text-slate-500">Cargando...</p>
+          <p className="text-neutral-500">Cargando...</p>
         ) : (
           <JourneyList
             journeys={journeys}

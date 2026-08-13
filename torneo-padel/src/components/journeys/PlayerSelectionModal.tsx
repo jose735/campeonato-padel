@@ -69,10 +69,10 @@ export default function PlayerSelectionModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
-      <div className="w-full max-w-md rounded-lg bg-slate-900 border border-slate-800 p-6">
-        <h3 className="text-lg font-semibold mb-1">Seleccionar jugadores</h3>
-        <p className="text-sm text-slate-400 mb-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+      <div className="w-full max-w-md rounded-lg bg-white border border-neutral-200 shadow-lg p-6">
+        <h3 className="text-lg font-semibold text-neutral-800 mb-1">Seleccionar jugadores</h3>
+        <p className="text-sm text-neutral-500 mb-4">
           La cantidad seleccionada debe ser múltiplo de 4.
         </p>
 
@@ -81,18 +81,18 @@ export default function PlayerSelectionModal({
             const checked = selectedIds.includes(player.id);
             return (
               <li key={player.id}>
-                <label className="flex items-center justify-between gap-2 rounded-md px-3 py-2 hover:bg-slate-800 cursor-pointer">
-                  <span className="flex items-center gap-2">
+                <label className="flex items-center justify-between gap-2 rounded-md px-3 py-2.5 lg:py-2 hover:bg-neutral-100 cursor-pointer">
+                  <span className="flex items-center gap-2 text-neutral-700">
                     <input
                       type="checkbox"
                       checked={checked}
                       onChange={() => toggleSelection(player.id)}
-                      className="accent-emerald-600"
+                      className="accent-primary-600"
                     />
                     {player.displayName}
                   </span>
                   {checked && (
-                    <span className="text-xs text-slate-500">seed {seedMap.get(player.id)}</span>
+                    <span className="text-xs text-neutral-400">seed {seedMap.get(player.id)}</span>
                   )}
                 </label>
               </li>
@@ -100,26 +100,26 @@ export default function PlayerSelectionModal({
           })}
         </ul>
 
-        <p className="text-sm text-slate-400 mb-2">
+        <p className="text-sm text-neutral-500 mb-2">
           Seleccionados: {selectedIds.length}
           {!isValidCount && selectedIds.length > 0 && (
-            <span className="text-amber-400"> (debe ser múltiplo de 4)</span>
+            <span className="text-warning-700"> (debe ser múltiplo de 4)</span>
           )}
         </p>
 
-        {error && <p className="text-red-400 text-sm mb-2">{error}</p>}
+        {error && <p className="text-danger-600 text-sm mb-2">{error}</p>}
 
         <div className="flex justify-end gap-2 mt-4">
           <button
             onClick={onClose}
-            className="rounded-md px-4 py-2 text-sm text-slate-300 hover:bg-slate-800"
+            className="rounded-md px-4 py-2.5 lg:py-2 text-sm text-neutral-600 hover:bg-neutral-100"
           >
             Cancelar
           </button>
           <button
             onClick={handleSubmit}
             disabled={!isValidCount || isSubmitting}
-            className="rounded-md bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 px-4 py-2 text-sm font-medium text-white"
+            className="rounded-md bg-accent-500 hover:bg-accent-600 disabled:opacity-50 px-4 py-2.5 lg:py-2 text-sm font-medium text-white transition-colors"
           >
             {isSubmitting ? 'Generando...' : 'Generar jornada'}
           </button>

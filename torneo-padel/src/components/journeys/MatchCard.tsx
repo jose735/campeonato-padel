@@ -1,5 +1,5 @@
-import { useState } from "react";
-import type { JourneyMatch, Player } from "@/types";
+import { useState } from 'react';
+import type { JourneyMatch, Player } from '@/types';
 
 interface MatchCardProps {
   match: JourneyMatch;
@@ -10,7 +10,7 @@ interface MatchCardProps {
     matchId: number,
     scoreA: number,
     scoreB: number,
-    pointsObtained: number,
+    pointsObtained: number
   ) => Promise<void>;
 }
 
@@ -79,25 +79,25 @@ export default function MatchCard({
 
   const resultLabel =
     scoreA === scoreB
-      ? "Empate (1 pt)"
+      ? 'Empate (1 pt)'
       : scoreA > scoreB
-        ? "Gana pareja A (2 pts)"
-        : "Gana pareja B (2 pts)";
+        ? 'Gana pareja A (2 pts)'
+        : 'Gana pareja B (2 pts)';
 
   return (
-    <div className="rounded-lg border border-slate-700 bg-slate-800/60 p-4">
-      <div className="mb-3 flex items-center justify-between text-xs text-slate-500">
+    <div className="rounded-lg border border-neutral-200 bg-white p-4 shadow-sm">
+      <div className="mb-3 flex items-center justify-between text-xs text-neutral-400">
         <span>Partido #{match.id}</span>
         {!isEditing && isRegistered(match) && (
-          <span className="rounded bg-emerald-900/50 px-2 py-0.5 text-emerald-400">
+          <span className="rounded bg-success-100 px-2 py-0.5 text-success-700">
             Registrado
           </span>
         )}
       </div>
 
-      <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+      <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 sm:gap-3">
         <div className="text-right">
-          <p className="text-sm font-medium text-slate-200">{teamA}</p>
+          <p className="text-sm font-medium text-neutral-800">{teamA}</p>
         </div>
 
         <div className="flex items-center gap-2">
@@ -110,11 +110,11 @@ export default function MatchCard({
             onChange={(e) => handleScoreAChange(Number(e.target.value))}
             className={`w-14 rounded-md border px-2 py-1.5 text-center text-sm ${
               isEditing
-                ? "border-slate-600 bg-slate-900 text-slate-100"
-                : "border-slate-700 bg-slate-800/50 text-slate-300 cursor-default"
+                ? 'border-primary-300 bg-white text-neutral-800 focus:outline-none focus:ring-2 focus:ring-primary-500'
+                : 'border-neutral-200 bg-neutral-50 text-neutral-500 cursor-default'
             }`}
           />
-          <span className="text-slate-500">–</span>
+          <span className="text-neutral-400">–</span>
           <input
             type="number"
             min={0}
@@ -124,19 +124,19 @@ export default function MatchCard({
             onChange={(e) => handleScoreBChange(Number(e.target.value))}
             className={`w-14 rounded-md border px-2 py-1.5 text-center text-sm ${
               isEditing
-                ? "border-slate-600 bg-slate-900 text-slate-100"
-                : "border-slate-700 bg-slate-800/50 text-slate-300 cursor-default"
+                ? 'border-primary-300 bg-white text-neutral-800 focus:outline-none focus:ring-2 focus:ring-primary-500'
+                : 'border-neutral-200 bg-neutral-50 text-neutral-500 cursor-default'
             }`}
           />
         </div>
 
         <div className="text-left">
-          <p className="text-sm font-medium text-slate-200">{teamB}</p>
+          <p className="text-sm font-medium text-neutral-800">{teamB}</p>
         </div>
       </div>
 
-      <div className="mt-3 flex items-center justify-between gap-2">
-        <p className="text-xs text-slate-400">
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+        <p className="text-xs text-neutral-500">
           {isEditing
             ? isValid
               ? resultLabel
@@ -145,21 +145,19 @@ export default function MatchCard({
         </p>
 
         {isLocked ? (
-          <span className="text-xs text-slate-500">Jornada finalizada</span>
+          <span className="text-xs text-neutral-400">Jornada finalizada</span>
         ) : isEditing ? (
           <button
             onClick={handleSave}
-            disabled={
-              !isValid || isSaving || (!hasChanged && isRegistered(match))
-            }
-            className="rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-500 disabled:opacity-40"
+            disabled={!isValid || isSaving || (!hasChanged && isRegistered(match))}
+            className="rounded-md bg-primary-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-primary-700 disabled:opacity-40 transition-colors"
           >
-            {isSaving ? "Guardando..." : "Guardar"}
+            {isSaving ? 'Guardando...' : 'Guardar'}
           </button>
         ) : (
           <button
             onClick={handleEdit}
-            className="rounded-md border border-slate-600 bg-slate-800 px-3 py-1.5 text-xs font-medium text-slate-200 hover:bg-slate-700"
+            className="rounded-md border border-neutral-300 bg-white px-3 py-1.5 text-xs font-medium text-neutral-700 hover:bg-neutral-100"
           >
             Editar
           </button>

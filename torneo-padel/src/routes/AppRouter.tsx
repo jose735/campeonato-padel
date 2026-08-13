@@ -1,33 +1,52 @@
-import { createBrowserRouter, RouterProvider } from "react-router-dom";
+import {
+  createBrowserRouter,
+  RouterProvider,
+  Navigate,
+} from "react-router-dom";
+import { useEffect } from "react";
 
-import MainLayout  from "@/layouts/MainLayout";
-
+import MainLayout from "@/layouts/MainLayout";
+import LoginPage from "@/pages/LoginPage";
 import HomePage from "../pages/HomePage";
 import PlayersPage from "@/pages/PlayersPage";
-import JourneysPage from '@/pages/JourneysPage';
-import TournamentsPage from '@/pages/TournamentsPage';
-import JourneyDetailPage from '@/pages/JourneyDetailPage';
-import RankingPage from '@/pages/RankingPage';
+import JourneysPage from "@/pages/JourneysPage";
+import TournamentsPage from "@/pages/TournamentsPage";
+import JourneyDetailPage from "@/pages/JourneyDetailPage";
+import RankingPage from "@/pages/RankingPage";
+import { RequireAuth } from "@/routes/ProtectedRoute";
+import { useAuthStore } from "@/store/auth-store";
 
 const router = createBrowserRouter([
   {
-    path: "/",
-    element: <MainLayout />,
-
+    path: "/login",
+    element: <LoginPage />,
+  },
+  {
+    element: <RequireAuth />,
     children: [
       {
-        index: true,
-        element: <HomePage />,
+        path: "/",
+        element: <MainLayout />,
+        children: [
+          { index: true, element: <HomePage /> },
+          { path: "jornadas", element: <JourneysPage /> },
+          { path: "jornadas/:id", element: <JourneyDetailPage /> },
+          { path: "ranking", element: <RankingPage /> },
+          { path: "jugadores", element: <PlayersPage /> },
+          { path: "torneos", element: <TournamentsPage /> },
+          { path: "*", element: <Navigate to="/" replace /> },
+        ],
       },
-      { path: 'jugadores', element: <PlayersPage /> },
-      { path: 'jornadas', element: <JourneysPage /> },
-      { path: 'torneos', element: <TournamentsPage /> },
-      { path: 'jornadas/:id', element: <JourneyDetailPage /> },
-      { path: 'ranking', element: <RankingPage /> },
     ],
   },
 ]);
 
 export const AppRouter = () => {
+  const hydrate = useAuthStore((s) => s.hydrate);
+
+  useEffect(() => {
+    hydrate();
+  }, [hydrate]);
+
   return <RouterProvider router={router} />;
 };
