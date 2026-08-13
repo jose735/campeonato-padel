@@ -1,4 +1,6 @@
+import { Trash2 } from 'lucide-react';
 import type { Player } from '@/types';
+import Button from '@/components/ui/Button';
 
 interface PlayerListProps {
   players: Player[];
@@ -6,25 +8,25 @@ interface PlayerListProps {
 }
 
 export default function PlayerList({ players, onDelete }: PlayerListProps) {
-  if (players.length === 0) {
-    return <p className="text-neutral-500">Aún no hay jugadores registrados.</p>;
-  }
-
   return (
-    <ul className="flex flex-col gap-3 lg:gap-2">
+    <ul className="flex flex-col gap-2">
       {players.map((player) => (
         <li
           key={player.id}
-          className="flex items-center justify-between gap-2 rounded-md border border-neutral-200 bg-white px-4 py-3 shadow-sm"
+          className="flex items-center justify-between gap-3 rounded-lg border border-neutral-200 bg-neutral-50/60 px-4 py-3"
         >
-          <span className="text-neutral-800">{player.displayName}</span>
+          <div>
+            <p className="font-medium text-neutral-800">{player.displayName}</p>
+            {player.nickname && (
+              <p className="text-sm text-neutral-500">
+                {player.firstName} {player.lastName}
+              </p>
+            )}
+          </div>
           {onDelete && (
-            <button
-              onClick={() => onDelete(player.id)}
-              className="text-sm font-medium text-danger-600 hover:text-danger-700"
-            >
+            <Button variant="danger" icon={Trash2} onClick={() => onDelete(player.id)}>
               Eliminar
-            </button>
+            </Button>
           )}
         </li>
       ))}

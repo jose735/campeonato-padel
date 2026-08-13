@@ -1,18 +1,29 @@
 import { NavLink } from 'react-router-dom';
-import { X } from 'lucide-react';
+import {
+  X,
+  Home,
+  Users,
+  Trophy,
+  CalendarDays,
+  BarChart3,
+  LogOut,
+  ShieldCheck,
+  UserRound,
+} from 'lucide-react';
 import { useAuthStore } from '@/store/auth-store';
 
 type NavItem = {
   label: string;
   path: string;
+  icon: React.ComponentType<{ size?: number; className?: string }>;
 };
 
 const navItems: NavItem[] = [
-  { label: 'Inicio', path: '/' },
-  { label: 'Jugadores', path: '/jugadores' },
-  { label: 'Torneos', path: '/torneos' },
-  { label: 'Jornadas', path: '/jornadas' },
-  { label: 'Ranking', path: '/ranking' },
+  { label: 'Inicio', path: '/', icon: Home },
+  { label: 'Jugadores', path: '/jugadores', icon: Users },
+  { label: 'Torneos', path: '/torneos', icon: Trophy },
+  { label: 'Jornadas', path: '/jornadas', icon: CalendarDays },
+  { label: 'Ranking', path: '/ranking', icon: BarChart3 },
 ];
 
 interface SidebarProps {
@@ -23,58 +34,105 @@ interface SidebarProps {
 export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const role = useAuthStore((s) => s.role);
   const logout = useAuthStore((s) => s.logout);
+  const isAdmin = role === 'admin';
 
   return (
     <>
-      {/* Overlay solo en mobile/tablet cuando el sidebar está abierto */}
       {isOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black/40 lg:hidden"
+          className="fixed inset-0 z-40 bg-black/40 backdrop-blur-[1px] lg:hidden"
           onClick={onClose}
           aria-hidden="true"
         />
       )}
 
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex w-64 shrink-0 flex-col border-r border-neutral-200 bg-white px-4 py-6 transition-transform duration-200 lg:static lg:w-56 lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-50 flex w-64 shrink-0 flex-col border-r border-neutral-200 bg-white transition-transform duration-200 lg:static lg:w-60 lg:translate-x-0 ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
-        <div className="mb-6 flex items-center justify-between lg:hidden">
-          <span className="font-semibold text-primary-900">Menú</span>
-          <button onClick={onClose} className="text-neutral-500 hover:text-neutral-800">
-            <X size={20} />
+        {/* Brand */}
+        <div className="flex items-center justify-between border-b border-neutral-100 px-5 py-5">
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary-600 text-white shadow-sm">
+              <Trophy size={18} />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-primary-900">Torneo Pádel</p>
+              <p className="text-[11px] text-neutral-400">Gestión de torneos</p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="rounded-md p-1.5 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700 lg:hidden"
+            aria-label="Cerrar menú"
+          >
+            <X size={18} />
           </button>
         </div>
 
-        <nav className="flex flex-col gap-1">
-          {navItems.map((item) => (
-            <NavLink
-              key={item.label}
-              to={item.path}
-              end={item.path === '/'}
-              onClick={onClose}
-              className={({ isActive }) =>
-                `rounded-md px-3 py-2.5 text-sm font-medium transition-colors lg:py-2 ${
-                  isActive
-                    ? 'bg-primary-600 text-white'
-                    : 'text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900'
-                }`
-              }
-            >
-              {item.label}
-            </NavLink>
-          ))}
+        {/* Nav */}
+        <nav className="flex flex-1 flex-col gap-1 px-3 py-4">
+          <p className="mb-2 px-3 text-[11px] font-semibold uppercase tracking-wider text-neutral-400">
+            Menú
+          </p>
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            return (
+              <NavLink
+                key={item.label}
+                to={item.path}
+                end={item.path === '/'}
+                onClick={onClose}
+                className={({ isActive }) =>
+                  `group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+                    isActive
+                      ? 'bg-primary-600 text-white shadow-sm'
+                      : 'text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900'
+                  }`
+                }
+              >
+                {({ isActive }) => (
+                  <>
+                    <Icon
+                      size={18}
+                      className={isActive ? 'text-white' : 'text-neutral-400 group-hover:text-neutral-600'}
+                    />
+                    {item.label}
+                  </>
+                )}
+              </NavLink>
+            );
+          })}
         </nav>
 
-        <div className="mt-auto border-t border-neutral-200 pt-4">
-          <p className="mb-2 px-3 text-xs text-neutral-400">
-            {role === 'admin' ? 'Administrador' : 'Invitado'}
-          </p>
+        {/* Footer sesión */}
+        <div className="border-t border-neutral-100 p-4">
+          <div className="mb-3 flex items-center gap-3 rounded-lg bg-neutral-50 px-3 py-2.5">
+            <div
+              className={`flex h-8 w-8 items-center justify-center rounded-full ${
+                isAdmin
+                  ? 'bg-primary-100 text-primary-700'
+                  : 'bg-neutral-200 text-neutral-600'
+              }`}
+            >
+              {isAdmin ? <ShieldCheck size={16} /> : <UserRound size={16} />}
+            </div>
+            <div className="min-w-0">
+              <p className="truncate text-sm font-medium text-neutral-800">
+                {isAdmin ? 'Administrador' : 'Invitado'}
+              </p>
+              <p className="text-[11px] text-neutral-400">
+                {isAdmin ? 'Acceso completo' : 'Acceso de consulta y jornadas'}
+              </p>
+            </div>
+          </div>
+
           <button
             onClick={logout}
-            className="w-full rounded-md px-3 py-2.5 text-left text-sm text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900 lg:py-2"
+            className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-medium text-neutral-500 transition-colors hover:bg-danger-50 hover:text-danger-600"
           >
+            <LogOut size={16} />
             Cerrar sesión
           </button>
         </div>

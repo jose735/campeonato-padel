@@ -1,33 +1,40 @@
-import { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
+import { useState } from "react";
+import { useForm, type Resolver } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Calendar, Hash, Target, Trophy } from "lucide-react";
 import {
   createJourneySchema,
   type CreateJourneyFormData,
-} from '@/schemas/general-schemas';
-import type { Tournament } from '@/types';
-import { getTodayDateString } from '@/utils/index';
+} from "@/schemas/general-schemas";
+import type { Tournament } from "@/types";
+import { getTodayDateString } from "@/utils/index";
+import TextField from "@/components/ui/TextField";
+import SelectField from "@/components/ui/SelectField";
+import Button from "@/components/ui/Button";
 
 interface JourneyFormProps {
   tournaments: Tournament[];
   onSubmit: (input: CreateJourneyFormData) => Promise<void>;
 }
 
-export default function JourneyForm({ tournaments, onSubmit }: JourneyFormProps) {
+export default function JourneyForm({
+  tournaments,
+  onSubmit,
+}: JourneyFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors },
-  } = useForm<CreateJourneyFormData>({
-    resolver: zodResolver(createJourneySchema),
-    defaultValues: {
-      journeyDate: getTodayDateString(),
-      fieldsQuantity: 1,
-      scoreLimit: 24,
-    },
-  });
+  register,
+  handleSubmit,
+  reset,
+  formState: { errors },
+} = useForm<CreateJourneyFormData>({
+  resolver: zodResolver(createJourneySchema) as Resolver<CreateJourneyFormData>,
+  defaultValues: {
+    journeyDate: getTodayDateString(),
+    fieldsQuantity: 2,
+    scoreLimit: 24,
+  },
+});
 
   const onValid = async (data: CreateJourneyFormData) => {
     setIsSubmitting(true);
@@ -35,7 +42,7 @@ export default function JourneyForm({ tournaments, onSubmit }: JourneyFormProps)
       await onSubmit(data);
       reset({
         journeyDate: getTodayDateString(),
-        fieldsQuantity: 1,
+        fieldsQuantity: 2,
         scoreLimit: 24,
         tournamentId: undefined,
       });
@@ -45,13 +52,17 @@ export default function JourneyForm({ tournaments, onSubmit }: JourneyFormProps)
   };
 
   return (
-    <form onSubmit={handleSubmit(onValid)} className="flex flex-col gap-4 max-w-sm">
-      <div>
-        <label className="block text-sm font-medium text-neutral-600 mb-1">Torneo</label>
-        <select
-          {...register('tournamentId', { valueAsNumber: true })}
+    <form
+      onSubmit={handleSubmit(onValid)}
+      className="grid gap-4 sm:grid-cols-2"
+    >
+      <div className="sm:col-span-2">
+        <SelectField
+          label="Torneo"
+          icon={Trophy}
+          error={errors.tournamentId?.message}
           defaultValue=""
-          className="w-full rounded-md bg-white border border-neutral-300 px-3 py-2.5 lg:py-2 text-neutral-800 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+          {...register("tournamentId", { valueAsNumber: true })}
         >
           <option value="" disabled>
             Selecciona un torneo
@@ -61,64 +72,52 @@ export default function JourneyForm({ tournaments, onSubmit }: JourneyFormProps)
               {tournament.description}
             </option>
           ))}
-        </select>
-        {errors.tournamentId && (
-          <p className="text-danger-600 text-sm mt-1">{errors.tournamentId.message}</p>
-        )}
+        </SelectField>
       </div>
 
-      <div>
-        <label className="block text-sm font-medium text-neutral-600 mb-1">Fecha</label>
-        <input
-          type="date"
-          {...register('journeyDate')}
-          className="w-full rounded-md bg-white border border-neutral-300 px-3 py-2.5 lg:py-2 text-neutral-800 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-        />
-        {errors.journeyDate && (
-          <p className="text-danger-600 text-sm mt-1">{errors.journeyDate.message}</p>
+      <TextField
+        label="Fecha"
+        type="date"
+        icon={Calendar}
+        error={errors.journeyDate?.message}
+        {...register("journeyDate")}
+      />
+
+      <SelectField
+  label="Cantidad de canchas"
+  icon={Hash}
+  error={errors.fieldsQuantity?.message}
+  {...register('fieldsQuantity', { valueAsNumber: true })}
+>
+  <option value={2}>2 canchas</option>
+  <option value={3}>3 canchas</option>
+</SelectField>
+
+      <SelectField
+  label="Puntos límite por partido"
+  icon={Target}
+  error={errors.scoreLimit?.message}
+  {...register('scoreLimit', { valueAsNumber: true })}
+>
+  <option value={16}>16 puntos</option>
+  <option value={24}>24 puntos</option>
+  <option value={32}>32 puntos</option>
+</SelectField>
+
+      <div className="flex flex-col justify-end gap-2 sm:col-span-2">
+        <Button
+          type="submit"
+          isLoading={isSubmitting}
+          disabled={tournaments.length === 0}
+        >
+          Crear jornada
+        </Button>
+        {tournaments.length === 0 && (
+          <p className="text-sm text-warning-700">
+            Primero necesitas crear al menos un torneo.
+          </p>
         )}
       </div>
-
-      <div>
-        <label className="block text-sm font-medium text-neutral-600 mb-1">
-          Cantidad de canchas
-        </label>
-        <input
-          type="number"
-          min={1}
-          {...register('fieldsQuantity', { valueAsNumber: true })}
-          className="w-full rounded-md bg-white border border-neutral-300 px-3 py-2.5 lg:py-2 text-neutral-800 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-        />
-        {errors.fieldsQuantity && (
-          <p className="text-danger-600 text-sm mt-1">{errors.fieldsQuantity.message}</p>
-        )}
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-neutral-600 mb-1">
-          Puntos límite por partido
-        </label>
-        <input
-          type="number"
-          min={1}
-          {...register('scoreLimit', { valueAsNumber: true })}
-          className="w-full rounded-md bg-white border border-neutral-300 px-3 py-2.5 lg:py-2 text-neutral-800 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-        />
-        {errors.scoreLimit && (
-          <p className="text-danger-600 text-sm mt-1">{errors.scoreLimit.message}</p>
-        )}
-      </div>
-
-      <button
-        type="submit"
-        disabled={isSubmitting || tournaments.length === 0}
-        className="rounded-md bg-primary-600 hover:bg-primary-700 disabled:opacity-50 px-4 py-2.5 lg:py-2 font-medium text-white transition-colors"
-      >
-        {isSubmitting ? 'Guardando...' : 'Crear jornada'}
-      </button>
-      {tournaments.length === 0 && (
-        <p className="text-warning-700 text-sm">Primero necesitas crear al menos un torneo.</p>
-      )}
     </form>
   );
 }

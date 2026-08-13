@@ -1,5 +1,6 @@
-import { useState } from 'react';
-import type { JourneyMatch, Player } from '@/types';
+import { useState } from "react";
+import { Check, Pencil, Loader2 } from "lucide-react";
+import type { JourneyMatch, Player } from "@/types";
 
 interface MatchCardProps {
   match: JourneyMatch;
@@ -10,16 +11,101 @@ interface MatchCardProps {
     matchId: number,
     scoreA: number,
     scoreB: number,
-    pointsObtained: number
+    pointsObtained: number,
   ) => Promise<void>;
 }
 
-function playerName(players: Player[], id: number): string {
-  return players.find((p) => p.id === id)?.displayName ?? `Jugador #${id}`;
+function getPlayer(players: Player[], id: number): Player | undefined {
+  return players.find((p) => p.id === id);
+}
+
+function initials(player?: Player): string {
+  if (!player) return "?";
+  return `${player.firstName[0] ?? ""}${player.lastName[0] ?? ""}`.toUpperCase();
+}
+
+function teamLabel(p1?: Player, p2?: Player): string {
+  return `${p1?.displayName ?? "Jugador"} / ${p2?.displayName ?? "Jugador"}`;
 }
 
 function isRegistered(match: JourneyMatch): boolean {
   return match.scoreA > 0 || match.scoreB > 0 || match.pointsObtained > 0;
+}
+
+function TeamAvatars({ p1, p2 }: { p1?: Player; p2?: Player }) {
+  return (
+    <div className="flex -space-x-2.5 shrink-0">
+      <div className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-white bg-primary-100 text-[11px] font-semibold text-primary-700">
+        {initials(p1)}
+      </div>
+      <div className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-white bg-primary-100 text-[11px] font-semibold text-primary-700">
+        {initials(p2)}
+      </div>
+    </div>
+  );
+}
+
+interface TeamRowProps {
+  label: string;
+  p1?: Player;
+  p2?: Player;
+  score: number | "";
+  isEditing: boolean;
+  isWinner: boolean;
+  scoreLimit: number;
+  onScoreChange: (raw: string) => void;
+}
+
+function TeamRow({
+  label,
+  p1,
+  p2,
+  score,
+  isEditing,
+  isWinner,
+  scoreLimit,
+  onScoreChange,
+}: TeamRowProps) {
+  return (
+    <div
+      className={`flex items-center justify-between gap-3 rounded-lg px-3 py-2.5 transition-colors ${
+        isWinner ? "bg-primary-50" : ""
+      }`}
+    >
+      <div className="flex min-w-0 items-center gap-3">
+        <TeamAvatars p1={p1} p2={p2} />
+        <p
+          className={`truncate text-sm ${
+            isWinner
+              ? "font-semibold text-primary-800"
+              : "font-medium text-neutral-700"
+          }`}
+        >
+          {label}
+        </p>
+      </div>
+
+      {isEditing ? (
+        <input
+          type="number"
+          min={0}
+          max={scoreLimit}
+          value={score}
+          onChange={(e) => onScoreChange(e.target.value)}
+          placeholder="—"
+          className="w-14 shrink-0 rounded-md border border-primary-300 bg-white px-2 py-1 text-center text-lg font-bold text-neutral-800 focus:outline-none focus:ring-2 focus:ring-primary-500"
+        />
+      ) : (
+        <span
+          className={`w-10 shrink-0 text-center text-2xl font-bold tabular-nums ${
+            isWinner ? "text-primary-700" : "text-neutral-400"
+          }`}
+        >
+          {score}
+        </span>
+      )}
+    </div>
+  );
 }
 
 export default function MatchCard({
@@ -29,39 +115,69 @@ export default function MatchCard({
   isLocked,
   onSaveScore,
 }: MatchCardProps) {
-  const [scoreA, setScoreA] = useState(match.scoreA);
-  const [scoreB, setScoreB] = useState(match.scoreB);
-  const [isEditing, setIsEditing] = useState(!isRegistered(match));
+  const registeredInitially = isRegistered(match);
+  const [scoreA, setScoreA] = useState<number | null>(
+    registeredInitially ? match.scoreA : null,
+  );
+  const [scoreB, setScoreB] = useState<number | null>(
+    registeredInitially ? match.scoreB : null,
+  );
+  const [isEditing, setIsEditing] = useState(!registeredInitially);
   const [isSaving, setIsSaving] = useState(false);
 
-  const teamA = `${playerName(players, match.playerA1Id)} / ${playerName(players, match.playerA2Id)}`;
-  const teamB = `${playerName(players, match.playerB1Id)} / ${playerName(players, match.playerB2Id)}`;
+  const playerA1 = getPlayer(players, match.playerA1Id);
+  const playerA2 = getPlayer(players, match.playerA2Id);
+  const playerB1 = getPlayer(players, match.playerB1Id);
+  const playerB2 = getPlayer(players, match.playerB2Id);
 
+  const registered = isRegistered(match);
   const isValid =
+    scoreA !== null &&
+    scoreB !== null &&
     Number.isInteger(scoreA) &&
     Number.isInteger(scoreB) &&
     scoreA >= 0 &&
     scoreB >= 0 &&
     scoreA + scoreB === scoreLimit;
 
-  const pointsObtained = scoreA === scoreB ? 1 : 2;
-
+  const pointsObtained =
+    scoreA !== null && scoreB !== null && scoreA === scoreB ? 1 : 2;
   const hasChanged = scoreA !== match.scoreA || scoreB !== match.scoreB;
 
-  const handleScoreAChange = (value: number) => {
+  const winnerIsA = registered && !isEditing && match.scoreA > match.scoreB;
+  const winnerIsB = registered && !isEditing && match.scoreB > match.scoreA;
+  const isTie = registered && !isEditing && match.scoreA === match.scoreB;
+
+  const barA = scoreLimit > 0 ? (match.scoreA / scoreLimit) * 100 : 50;
+
+  const handleScoreAChange = (raw: string) => {
+    if (raw === "") {
+      setScoreA(null);
+      setScoreB(null);
+      return;
+    }
+    const value = Number(raw);
+    if (Number.isNaN(value)) return;
     const clamped = Math.min(Math.max(0, value), scoreLimit);
     setScoreA(clamped);
     setScoreB(scoreLimit - clamped);
   };
 
-  const handleScoreBChange = (value: number) => {
+  const handleScoreBChange = (raw: string) => {
+    if (raw === "") {
+      setScoreA(null);
+      setScoreB(null);
+      return;
+    }
+    const value = Number(raw);
+    if (Number.isNaN(value)) return;
     const clamped = Math.min(Math.max(0, value), scoreLimit);
     setScoreB(clamped);
     setScoreA(scoreLimit - clamped);
   };
 
   const handleSave = async () => {
-    if (!isValid) return;
+    if (!isValid || scoreA === null || scoreB === null) return;
     setIsSaving(true);
     try {
       await onSaveScore(match.id, scoreA, scoreB, pointsObtained);
@@ -77,88 +193,104 @@ export default function MatchCard({
     setIsEditing(true);
   };
 
-  const resultLabel =
-    scoreA === scoreB
-      ? 'Empate (1 pt)'
-      : scoreA > scoreB
-        ? 'Gana pareja A (2 pts)'
-        : 'Gana pareja B (2 pts)';
-
   return (
-    <div className="rounded-lg border border-neutral-200 bg-white p-4 shadow-sm">
-      <div className="mb-3 flex items-center justify-between text-xs text-neutral-400">
-        <span>Partido #{match.id}</span>
-        {!isEditing && isRegistered(match) && (
-          <span className="rounded bg-success-100 px-2 py-0.5 text-success-700">
+    <div className="overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-sm transition-shadow hover:shadow-md">
+      <div className="flex items-center justify-between border-b border-neutral-100 px-4 py-2">
+        <span className="text-xs font-medium text-neutral-400">
+          Partido #{match.id}
+        </span>
+        {isLocked ? (
+          <span className="rounded-full bg-neutral-100 px-2.5 py-0.5 text-xs font-medium text-neutral-500">
+            Finalizado
+          </span>
+        ) : registered && !isEditing ? (
+          <span className="inline-flex items-center gap-1 rounded-full bg-success-100 px-2.5 py-0.5 text-xs font-medium text-success-700">
+            <Check size={12} />
             Registrado
+          </span>
+        ) : (
+          <span className="rounded-full bg-warning-100 px-2.5 py-0.5 text-xs font-medium text-warning-700">
+            Pendiente
           </span>
         )}
       </div>
 
-      <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 sm:gap-3">
-        <div className="text-right">
-          <p className="text-sm font-medium text-neutral-800">{teamA}</p>
+      <div className="flex flex-col gap-0.5 px-2 py-2">
+        <TeamRow
+          label={teamLabel(playerA1, playerA2)}
+          p1={playerA1}
+          p2={playerA2}
+          score={scoreA ?? ""}
+          isEditing={isEditing}
+          isWinner={winnerIsA}
+          scoreLimit={scoreLimit}
+          onScoreChange={handleScoreAChange}
+        />
+        <div className="flex items-center gap-3 px-3">
+          <div className="h-px flex-1 bg-neutral-100" />
+          <span className="text-[10px] font-semibold tracking-wide text-neutral-300">
+            VS
+          </span>
+          <div className="h-px flex-1 bg-neutral-100" />
         </div>
-
-        <div className="flex items-center gap-2">
-          <input
-            type="number"
-            min={0}
-            max={scoreLimit}
-            value={scoreA}
-            readOnly={!isEditing}
-            onChange={(e) => handleScoreAChange(Number(e.target.value))}
-            className={`w-14 rounded-md border px-2 py-1.5 text-center text-sm ${
-              isEditing
-                ? 'border-primary-300 bg-white text-neutral-800 focus:outline-none focus:ring-2 focus:ring-primary-500'
-                : 'border-neutral-200 bg-neutral-50 text-neutral-500 cursor-default'
-            }`}
-          />
-          <span className="text-neutral-400">–</span>
-          <input
-            type="number"
-            min={0}
-            max={scoreLimit}
-            value={scoreB}
-            readOnly={!isEditing}
-            onChange={(e) => handleScoreBChange(Number(e.target.value))}
-            className={`w-14 rounded-md border px-2 py-1.5 text-center text-sm ${
-              isEditing
-                ? 'border-primary-300 bg-white text-neutral-800 focus:outline-none focus:ring-2 focus:ring-primary-500'
-                : 'border-neutral-200 bg-neutral-50 text-neutral-500 cursor-default'
-            }`}
-          />
-        </div>
-
-        <div className="text-left">
-          <p className="text-sm font-medium text-neutral-800">{teamB}</p>
-        </div>
+        <TeamRow
+          label={teamLabel(playerB1, playerB2)}
+          p1={playerB1}
+          p2={playerB2}
+          score={scoreB ?? ""}
+          isEditing={isEditing}
+          isWinner={winnerIsB}
+          scoreLimit={scoreLimit}
+          onScoreChange={handleScoreBChange}
+        />
       </div>
 
-      <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+      {/* Barra de proporción del marcador, estilo "odds bar" */}
+      {registered && !isEditing && (
+        <div className="flex h-1 w-full">
+          <div
+            className="bg-primary-500 transition-all"
+            style={{ width: `${barA}%` }}
+          />
+          <div
+            className="bg-accent-500 transition-all"
+            style={{ width: `${100 - barA}%` }}
+          />
+        </div>
+      )}
+
+      <div className="flex items-center justify-between gap-2 px-4 py-3">
         <p className="text-xs text-neutral-500">
           {isEditing
             ? isValid
-              ? resultLabel
-              : `Suma debe ser ${scoreLimit}`
-            : resultLabel}
+              ? isTie
+                ? "Empate · 1 pt"
+                : "2 pts al ganador"
+              : `La suma debe ser ${scoreLimit}`
+            : isTie
+              ? "Empate · 1 pt"
+              : "2 pts al ganador"}
         </p>
 
-        {isLocked ? (
-          <span className="text-xs text-neutral-400">Jornada finalizada</span>
-        ) : isEditing ? (
+        {isLocked ? null : isEditing ? (
           <button
             onClick={handleSave}
-            disabled={!isValid || isSaving || (!hasChanged && isRegistered(match))}
-            className="rounded-md bg-primary-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-primary-700 disabled:opacity-40 transition-colors"
+            disabled={!isValid || isSaving || (!hasChanged && registered)}
+            className="inline-flex items-center gap-1.5 rounded-md bg-primary-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-primary-700 disabled:opacity-40 transition-colors"
           >
-            {isSaving ? 'Guardando...' : 'Guardar'}
+            {isSaving ? (
+              <Loader2 size={13} className="animate-spin" />
+            ) : (
+              <Check size={13} />
+            )}
+            {isSaving ? "Guardando..." : "Guardar"}
           </button>
         ) : (
           <button
             onClick={handleEdit}
-            className="rounded-md border border-neutral-300 bg-white px-3 py-1.5 text-xs font-medium text-neutral-700 hover:bg-neutral-100"
+            className="inline-flex items-center gap-1.5 rounded-md border border-neutral-300 bg-white px-3 py-1.5 text-xs font-medium text-neutral-700 hover:bg-neutral-100"
           >
+            <Pencil size={13} />
             Editar
           </button>
         )}

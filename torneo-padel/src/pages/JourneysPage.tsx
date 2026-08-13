@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { CalendarDays } from 'lucide-react';
 import { useTournamentStore } from '@/store/tournament-store';
 import { useJourneyStore } from '@/store/journey-store';
 import { useJourneyMatchStore } from '@/store/journey-match-store';
 import JourneyForm from '@/components/journeys/JourneyForm';
 import JourneyList from '@/components/journeys/JourneyList';
 import PlayerSelectionModal from '@/components/journeys/PlayerSelectionModal';
+import Card from '@/components/ui/Card';
 
 export default function JourneysPage() {
   const navigate = useNavigate();
@@ -23,14 +25,27 @@ export default function JourneysPage() {
   return (
     <div className="flex flex-col gap-8 lg:gap-6">
       <div>
-        <h2 className="text-2xl font-semibold text-neutral-800 mb-4">Jornadas</h2>
-        <JourneyForm tournaments={tournaments} onSubmit={createJourney} />
+        <h2 className="text-2xl font-semibold text-neutral-800">Jornadas</h2>
+        <p className="mt-1 text-sm text-neutral-500">
+          Creá fechas, asigná jugadores y generá los partidos automáticamente.
+        </p>
       </div>
 
-      <div>
-        <h3 className="text-lg font-medium text-neutral-800 mb-2">Listado</h3>
+      <Card title="Nueva jornada" description="Completá los datos para registrar una fecha.">
+        <JourneyForm tournaments={tournaments} onSubmit={createJourney} />
+      </Card>
+
+      <Card
+        title="Listado de jornadas"
+        description={`${journeys.length} jornada${journeys.length === 1 ? '' : 's'} registrada${journeys.length === 1 ? '' : 's'}.`}
+      >
         {isLoading ? (
-          <p className="text-neutral-500">Cargando...</p>
+          <p className="text-sm text-neutral-500">Cargando...</p>
+        ) : journeys.length === 0 ? (
+          <div className="flex flex-col items-center gap-2 py-8 text-center">
+            <CalendarDays className="text-neutral-300" size={32} />
+            <p className="text-sm text-neutral-500">Aún no hay jornadas registradas.</p>
+          </div>
         ) : (
           <JourneyList
             journeys={journeys}
@@ -40,16 +55,14 @@ export default function JourneysPage() {
             onViewMatches={(id) => navigate(`/jornadas/${id}`)}
           />
         )}
-      </div>
+      </Card>
 
       {activeJourneyId !== null && (
         <PlayerSelectionModal
           key={activeJourneyId}
           journeyId={activeJourneyId}
           onClose={() => setActiveJourneyId(null)}
-          onSuccess={() => {
-            fetchJourneyIdsWithMatches();
-          }}
+          onSuccess={() => fetchJourneyIdsWithMatches()}
         />
       )}
     </div>
