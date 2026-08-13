@@ -11,25 +11,47 @@ import Card from "@/components/ui/Card";
 
 export default function JourneysPage() {
   const navigate = useNavigate();
-  const { tournaments, fetchTournaments } = useTournamentStore();
-  const { journeys, isLoading, fetchJourneys, createJourney } =
-    useJourneyStore();
-  const { journeyIdsWithMatches, fetchJourneyIdsWithMatches } =
-    useJourneyMatchStore();
-  const [activeJourneyId, setActiveJourneyId] = useState<number | null>(null);
+
+  const {
+    tournaments,
+    fetchTournaments,
+  } = useTournamentStore();
+
+  const {
+    journeys,
+    isLoading,
+    fetchJourneys,
+    createJourney,
+  } = useJourneyStore();
+
+  const {
+    journeyIdsWithMatches,
+    fetchJourneyIdsWithMatches,
+  } = useJourneyMatchStore();
+
+  const [activeJourneyId, setActiveJourneyId] =
+    useState<number | null>(null);
 
   useEffect(() => {
     fetchTournaments();
     fetchJourneys();
     fetchJourneyIdsWithMatches();
-  }, [fetchTournaments, fetchJourneys, fetchJourneyIdsWithMatches]);
+  }, [
+    fetchTournaments,
+    fetchJourneys,
+    fetchJourneyIdsWithMatches,
+  ]);
 
   return (
     <div className="flex flex-col gap-8 lg:gap-6">
       <div>
-        <h2 className="text-2xl font-semibold text-neutral-800">Jornadas</h2>
+        <h2 className="text-2xl font-semibold text-neutral-800">
+          Jornadas
+        </h2>
+
         <p className="mt-1 text-sm text-neutral-500">
-          Creá fechas, asigná jugadores y generá los partidos automáticamente.
+          Creá fechas, asigná jugadores y generá los partidos
+          automáticamente.
         </p>
       </div>
 
@@ -37,18 +59,31 @@ export default function JourneysPage() {
         title="Nueva jornada"
         description="Completá los datos para registrar una fecha."
       >
-        <JourneyForm tournaments={tournaments} onSubmit={createJourney} />
+        <JourneyForm
+          tournaments={tournaments}
+          onSubmit={createJourney}
+        />
       </Card>
 
       <Card
         title="Listado de jornadas"
-        description={`${journeys.length} jornada${journeys.length === 1 ? "" : "s"} registrada${journeys.length === 1 ? "" : "s"}.`}
+        description={`${journeys.length} jornada${
+          journeys.length === 1 ? "" : "s"
+        } registrada${
+          journeys.length === 1 ? "" : "s"
+        }.`}
       >
         {isLoading ? (
-          <p className="text-sm text-neutral-500">Cargando...</p>
+          <p className="text-sm text-neutral-500">
+            Cargando...
+          </p>
         ) : journeys.length === 0 ? (
           <div className="flex flex-col items-center gap-2 py-8 text-center">
-            <CalendarDays className="text-neutral-300" size={32} />
+            <CalendarDays
+              className="text-neutral-300"
+              size={32}
+            />
+
             <p className="text-sm text-neutral-500">
               Aún no hay jornadas registradas.
             </p>
@@ -59,7 +94,15 @@ export default function JourneysPage() {
             tournaments={tournaments}
             journeyIdsWithMatches={journeyIdsWithMatches}
             onManagePlayers={setActiveJourneyId}
-            onViewMatches={(id) => navigate(`/jornadas/${id}`)}
+            onViewMatches={(id) =>
+              navigate(`/jornadas/${id}`)
+            }
+            onJourneyDeleted={async () => {
+              await Promise.all([
+                fetchJourneys(),
+                fetchJourneyIdsWithMatches(),
+              ]);
+            }}
           />
         )}
       </Card>
@@ -69,13 +112,19 @@ export default function JourneysPage() {
           key={activeJourneyId}
           journeyId={activeJourneyId}
           maxPlayers={
-            journeys.find((j) => j.id === activeJourneyId)?.maxPlayers ?? 8
+            journeys.find(
+              (journey) => journey.id === activeJourneyId,
+            )?.maxPlayers ?? 8
           }
           fieldsQuantity={
-            journeys.find((j) => j.id === activeJourneyId)?.fieldsQuantity ?? 2
+            journeys.find(
+              (journey) => journey.id === activeJourneyId,
+            )?.fieldsQuantity ?? 2
           }
           onClose={() => setActiveJourneyId(null)}
-          onSuccess={() => fetchJourneyIdsWithMatches()}
+          onSuccess={() =>
+            fetchJourneyIdsWithMatches()
+          }
         />
       )}
     </div>

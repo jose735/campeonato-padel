@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useForm, type Resolver } from "react-hook-form";
+import { useForm, useWatch, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Calendar, Hash, Target, Trophy, Users } from "lucide-react";
 import {
@@ -22,10 +22,12 @@ export default function JourneyForm({
   onSubmit,
 }: JourneyFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+
   const {
     register,
     handleSubmit,
     reset,
+    control,
     formState: { errors },
   } = useForm<CreateJourneyFormData>({
     resolver: zodResolver(
@@ -39,14 +41,27 @@ export default function JourneyForm({
     },
   });
 
+  const fieldsQuantity = useWatch({
+  control,
+  name: "fieldsQuantity",
+});
+
+  const maxPlayers = fieldsQuantity === 3 ? 12 : 8;
+
   const onValid = async (data: CreateJourneyFormData) => {
     setIsSubmitting(true);
+
     try {
-      await onSubmit(data);
+      await onSubmit({
+        ...data,
+        maxPlayers: data.fieldsQuantity === 3 ? 12 : 8,
+      });
+
       reset({
         journeyDate: getTodayDateString(),
         fieldsQuantity: 2,
         scoreLimit: 24,
+        maxPlayers: 8,
         tournamentId: undefined,
       });
     } finally {
@@ -70,6 +85,7 @@ export default function JourneyForm({
           <option value="" disabled>
             Selecciona un torneo
           </option>
+
           {tournaments.map((tournament) => (
             <option key={tournament.id} value={tournament.id}>
               {tournament.description}
@@ -107,15 +123,20 @@ export default function JourneyForm({
         <option value={32}>32 puntos</option>
       </SelectField>
 
-      <SelectField
-        label="Máximo de jugadores"
-        icon={Users}
-        error={errors.maxPlayers?.message}
-        {...register("maxPlayers", { valueAsNumber: true })}
-      >
-        <option value={8}>8 jugadores</option>
-        <option value={12}>12 jugadores</option>
-      </SelectField>
+      <div className="flex items-center gap-3 rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2.5">
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary-100 text-primary-700">
+          <Users size={16} />
+        </div>
+
+        <div>
+          <p className="text-sm font-medium text-neutral-700">
+            Máximo de jugadores
+          </p>
+          <p className="text-sm text-neutral-500">
+            {maxPlayers} jugadores
+          </p>
+        </div>
+      </div>
 
       <div className="flex flex-col justify-end gap-2 sm:col-span-2">
         <Button
@@ -125,6 +146,7 @@ export default function JourneyForm({
         >
           Crear jornada
         </Button>
+
         {tournaments.length === 0 && (
           <p className="text-sm text-warning-700">
             Primero necesitas crear al menos un torneo.
