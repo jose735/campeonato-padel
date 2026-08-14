@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Flag, RotateCcw } from "lucide-react";
+import { Flag, RotateCcw, X } from "lucide-react";
+
+import copaKolariImg from "@/assets/copa-kolari-imagen.png";
 
 import { useJourneyStore } from "@/store/journey-store";
 import { useJourneyMatchStore } from "@/store/journey-match-store";
@@ -38,6 +40,7 @@ export default function JourneyDetailPage() {
 
   const [isFinishing, setIsFinishing] = useState(false);
   const [isReopening, setIsReopening] = useState(false);
+  const [isImageOpen, setIsImageOpen] = useState(false);
 
   useEffect(() => {
     fetchJourneys();
@@ -60,6 +63,9 @@ export default function JourneyDetailPage() {
   const isLocked = journey?.status === "finished";
 
   const tournament = tournaments.find((t) => t.id === journey?.tournamentId);
+
+  const isCopaKolari =
+    tournament?.description?.trim().toLowerCase() === "copa kolari";
 
   const matchesByRound = useMemo(() => {
     const grouped = new Map<number, typeof matches>();
@@ -166,15 +172,32 @@ export default function JourneyDetailPage() {
         </button>
 
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <h2 className="text-2xl font-semibold text-neutral-800">
-              {tournament?.description ?? "Jornada"}
-            </h2>
+          <div className="flex items-start gap-3">
+            {isCopaKolari && (
+              <button
+                type="button"
+                onClick={() => setIsImageOpen(true)}
+                className="shrink-0 overflow-hidden rounded-lg border border-neutral-200 shadow-sm transition hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                aria-label="Ver imagen de Copa Kolari"
+              >
+                <img
+                  src={copaKolariImg}
+                  alt="Copa Kolari"
+                  className="h-14 w-14 object-cover sm:h-16 sm:w-16"
+                />
+              </button>
+            )}
 
-            <p className="mt-1 text-neutral-500">
-              {journey.journeyDate} · {journey.fieldsQuantity} cancha(s) · hasta{" "}
-              {journey.scoreLimit} pts · {matches.length} partido(s)
-            </p>
+            <div className="min-w-0">
+              <h2 className="text-2xl font-semibold text-neutral-800">
+                {tournament?.description ?? "Jornada"}
+              </h2>
+
+              <p className="mt-1 text-neutral-500">
+                {journey.journeyDate} · {journey.fieldsQuantity} cancha(s) ·
+                hasta {journey.scoreLimit} pts · {matches.length} partido(s)
+              </p>
+            </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
@@ -241,6 +264,34 @@ export default function JourneyDetailPage() {
 
           <JourneyStandings standings={standings} />
         </>
+      )}
+
+      {/* Modal imagen Copa Kolari */}
+      {isImageOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4"
+          onClick={() => setIsImageOpen(false)}
+        >
+          <div
+            className="relative max-h-[90vh] max-w-3xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              onClick={() => setIsImageOpen(false)}
+              className="absolute -right-2 -top-2 z-10 rounded-full bg-white p-1.5 text-neutral-600 shadow hover:bg-neutral-100"
+              aria-label="Cerrar"
+            >
+              <X size={18} />
+            </button>
+
+            <img
+              src={copaKolariImg}
+              alt="Copa Kolari"
+              className="max-h-[90vh] w-full rounded-lg object-contain"
+            />
+          </div>
+        </div>
       )}
     </div>
   );

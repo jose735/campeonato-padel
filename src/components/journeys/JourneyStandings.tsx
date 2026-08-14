@@ -2,6 +2,7 @@ import type { StandingRow } from "@/lib/standings";
 
 interface JourneyStandingsProps {
   standings: StandingRow[];
+  showDecimals?: boolean;
 }
 
 function PositionBadge({ position }: { position: number }) {
@@ -38,6 +39,7 @@ function PositionBadge({ position }: { position: number }) {
 
 export default function JourneyStandings({
   standings,
+  showDecimals = false,
 }: JourneyStandingsProps) {
   if (standings.length === 0) {
     return (
@@ -133,7 +135,7 @@ export default function JourneyStandings({
                   {/* Pts */}
                   <td className="w-14 whitespace-nowrap px-1 py-3 text-center">
                     <span className="inline-flex min-w-8 items-center justify-center rounded-md bg-primary-50 px-1.5 py-0.5 text-sm font-bold tabular-nums text-primary-700">
-                      {row.points}
+                      {showDecimals ? row.points.toFixed(2) : row.points}
                     </span>
                   </td>
 
@@ -147,9 +149,8 @@ export default function JourneyStandings({
                           : "text-neutral-500"
                     }`}
                   >
-                    {row.difference > 0
-                      ? `+${row.difference}`
-                      : row.difference}
+                    {row.difference > 0 ? "+" : ""}
+                    {showDecimals ? row.difference.toFixed(2) : row.difference}
                   </td>
 
                   {/* PJ */}

@@ -30,11 +30,18 @@ export default function PlayerList({
 
   const filteredPlayers = useMemo(() => {
     const term = normalize(search.trim());
-    if (!term) return players;
 
-    return players.filter((player) => {
+    const sorted = [...players].sort((a, b) =>
+      a.displayName.localeCompare(b.displayName, 'es', {
+        sensitivity: 'base',
+      }),
+    );
+
+    if (!term) return sorted;
+
+    return sorted.filter((player) => {
       const haystack = normalize(
-        `${player.firstName} ${player.lastName} ${player.nickname ?? ''}`
+        `${player.firstName} ${player.lastName} ${player.nickname ?? ''}`,
       );
       return haystack.includes(term);
     });
@@ -42,7 +49,7 @@ export default function PlayerList({
 
   const { page, setPage, totalPages, pageItems, totalItems } = usePagination(
     filteredPlayers,
-    pageSize
+    pageSize,
   );
 
   const handleSearchChange = (value: string) => {
@@ -70,34 +77,36 @@ export default function PlayerList({
               key={player.id}
               className="flex items-center justify-between gap-3 rounded-lg border border-neutral-200 bg-neutral-50/60 px-4 py-3"
             >
-              <div>
-                <p className="font-medium text-neutral-800">{player.displayName}</p>
+              <div className="min-w-0">
+                <p className="truncate font-medium text-neutral-800">
+                  {player.displayName}
+                </p>
                 {player.nickname && (
-                  <p className="text-sm text-neutral-500">
+                  <p className="truncate text-sm text-neutral-500">
                     {player.firstName} {player.lastName}
                   </p>
                 )}
               </div>
 
               {(onEdit || onDelete) && (
-                <div className="flex items-center gap-2">
+                <div className="flex shrink-0 flex-col">
                   {onEdit && (
                     <Button
                       variant="secondary"
                       icon={Pencil}
                       onClick={() => onEdit(player)}
-                    >
-                      Editar
-                    </Button>
+                      aria-label={`Editar ${player.displayName}`}
+                      className="!px-2.5"
+                    />
                   )}
                   {onDelete && (
                     <Button
                       variant="danger"
                       icon={Trash2}
                       onClick={() => onDelete(player.id)}
-                    >
-                      Eliminar
-                    </Button>
+                      aria-label={`Eliminar ${player.displayName}`}
+                      className="!px-2.5"
+                    />
                   )}
                 </div>
               )}
