@@ -171,7 +171,7 @@ export default function JourneyList({
                   <p className="mt-0.5 flex items-center gap-1.5 text-sm text-neutral-500">
                     <Calendar size={14} />
                     {journey.journeyDate} ·{" "}
-                    {journey.fieldsQuantity} cancha(s) · {" "}
+                    {journey.fieldsQuantity} canchas · {" "}
                     {journey.scoreLimit} pts
                   </p>
                 </div>

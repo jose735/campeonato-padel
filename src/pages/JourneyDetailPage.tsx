@@ -194,8 +194,7 @@ export default function JourneyDetailPage() {
               </h2>
 
               <p className="mt-1 text-neutral-500">
-                {journey.journeyDate} · {journey.fieldsQuantity} cancha(s) ·
-                hasta {journey.scoreLimit} pts · {matches.length} partido(s)
+                {journey.journeyDate} · {journey.fieldsQuantity} canchas · {journey.scoreLimit} pts · {matches.length} partidos
               </p>
             </div>
           </div>
