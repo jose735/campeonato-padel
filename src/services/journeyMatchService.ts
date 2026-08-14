@@ -34,11 +34,12 @@ export async function getMatchesByJourneyId(journeyId: number): Promise<JourneyM
 export async function getMatchesByTournamentId(
   tournamentId: number
 ): Promise<JourneyMatch[]> {
-  // 1) Jornadas del torneo
+  // 1) Solo jornadas finalizadas del torneo
   const { data: journeys, error: journeysError } = await supabase
     .from('journeys')
     .select('id')
-    .eq('tournament_id', tournamentId);
+    .eq('tournament_id', tournamentId)
+    .eq('status', 'finished');
 
   if (journeysError) throw journeysError;
 

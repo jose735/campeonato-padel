@@ -84,6 +84,18 @@ export async function finishJourney(id: number): Promise<Journey> {
   return mapJourneyRecordToJourney(data as JourneyRecord);
 }
 
+export async function reopenJourney(id: number): Promise<Journey> {
+  const { data, error } = await supabase
+    .from(TABLE)
+    .update({ status: 'open' })
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return mapJourneyRecordToJourney(data as JourneyRecord);
+}
+
 export async function deleteJourney(id: number): Promise<void> {
   const { error } = await supabase.from(TABLE).delete().eq('id', id);
   if (error) throw error;

@@ -1,14 +1,17 @@
 import { useState } from 'react';
 import { Navigate } from 'react-router-dom';
-import { Trophy, ShieldCheck, ArrowLeft, LogIn } from 'lucide-react';
+import { Trophy, ShieldCheck, ArrowLeft, LogIn, UserCog } from 'lucide-react';
 import { useAuthStore } from '@/store/auth-store';
 import TextField from '@/components/ui/TextField';
 import Button from '@/components/ui/Button';
 
+type LoginMode = 'select' | 'coordinador' | 'admin';
+
 export default function LoginPage() {
   const role = useAuthStore((s) => s.role);
-  const { loginAsGuest, loginAsAdmin } = useAuthStore();
-  const [showAdminForm, setShowAdminForm] = useState(false);
+  const { loginAsGuest, loginAsCoordinador, loginAsAdmin } = useAuthStore();
+
+  const [mode, setMode] = useState<LoginMode>('select');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -17,24 +20,35 @@ export default function LoginPage() {
     return <Navigate to="/" replace />;
   }
 
-  const handleAdminLogin = async (e: React.FormEvent) => {
+  const handlePasswordLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    const ok = loginAsAdmin(password);
+
+    const ok =
+      mode === 'coordinador'
+        ? loginAsCoordinador(password)
+        : loginAsAdmin(password);
+
     setIsSubmitting(false);
 
     if (!ok) {
       setError('Contraseña inválida');
       return;
     }
+
     setError(null);
+  };
+
+  const goBack = () => {
+    setMode('select');
+    setError(null);
+    setPassword('');
   };
 
   return (
     <div className="flex min-h-screen">
       {/* Panel de marca — solo visible desde lg */}
       <div className="relative hidden w-1/2 flex-col justify-between overflow-hidden bg-primary-900 p-10 text-white lg:flex">
-        {/* Patrón decorativo sutil */}
         <div
           className="pointer-events-none absolute inset-0 opacity-[0.07]"
           style={{
@@ -68,7 +82,7 @@ export default function LoginPage() {
       {/* Panel de formulario */}
       <div className="flex w-full flex-col items-center justify-center bg-neutral-50 px-4 py-12 lg:w-1/2">
         <div className="w-full max-w-sm">
-          {/* Logo visible solo en mobile/tablet, donde no hay panel de marca */}
+          {/* Logo mobile */}
           <div className="mb-8 flex items-center justify-center gap-2 lg:hidden">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary-600 text-white">
               <Trophy size={20} />
@@ -78,25 +92,42 @@ export default function LoginPage() {
 
           <div className="rounded-xl border border-neutral-200 bg-white p-6 shadow-sm sm:p-8">
             <h1 className="text-xl font-semibold text-neutral-800">
-              {showAdminForm ? 'Acceso de administrador' : 'Bienvenido'}
+              {mode === 'select' && 'Bienvenido'}
+              {mode === 'coordinador' && 'Acceso de coordinador'}
+              {mode === 'admin' && 'Acceso de administrador'}
             </h1>
+
             <p className="mt-1 text-sm text-neutral-500">
-              {showAdminForm
-                ? 'Ingresa la contraseña para gestionar la app.'
-                : 'Elige cómo quieres ingresar.'}
+              {mode === 'select' && 'Elige cómo quieres ingresar.'}
+              {mode === 'coordinador' && 'Ingresa la contraseña de coordinador.'}
+              {mode === 'admin' && 'Ingresa la contraseña de administrador.'}
             </p>
 
-            {!showAdminForm ? (
+            {mode === 'select' ? (
               <div className="mt-6 flex flex-col gap-3">
                 <Button onClick={loginAsGuest} icon={LogIn} className="w-full">
                   Ingresar como invitado
                 </Button>
+
+                <Button
+                  variant="secondary"
+                  icon={UserCog}
+                  className="w-full"
+                  onClick={() => {
+                    setMode('coordinador');
+                    setError(null);
+                    setPassword('');
+                  }}
+                >
+                  Ingresar como coordinador
+                </Button>
+
                 <Button
                   variant="secondary"
                   icon={ShieldCheck}
                   className="w-full"
                   onClick={() => {
-                    setShowAdminForm(true);
+                    setMode('admin');
                     setError(null);
                     setPassword('');
                   }}
@@ -105,9 +136,13 @@ export default function LoginPage() {
                 </Button>
               </div>
             ) : (
-              <form onSubmit={handleAdminLogin} className="mt-6 flex flex-col gap-4">
+              <form onSubmit={handlePasswordLogin} className="mt-6 flex flex-col gap-4">
                 <TextField
-                  label="Contraseña de administrador"
+                  label={
+                    mode === 'coordinador'
+                      ? 'Contraseña de coordinador'
+                      : 'Contraseña de administrador'
+                  }
                   type="password"
                   autoFocus
                   value={password}
@@ -118,17 +153,18 @@ export default function LoginPage() {
                   error={error ?? undefined}
                 />
 
-                <Button type="submit" icon={ShieldCheck} isLoading={isSubmitting} className="w-full">
+                <Button
+                  type="submit"
+                  icon={mode === 'coordinador' ? UserCog : ShieldCheck}
+                  isLoading={isSubmitting}
+                  className="w-full"
+                >
                   Entrar
                 </Button>
 
                 <button
                   type="button"
-                  onClick={() => {
-                    setShowAdminForm(false);
-                    setError(null);
-                    setPassword('');
-                  }}
+                  onClick={goBack}
                   className="inline-flex items-center gap-1.5 self-center text-sm text-neutral-500 hover:text-neutral-800"
                 >
                   <ArrowLeft size={14} />

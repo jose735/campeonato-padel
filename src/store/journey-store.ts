@@ -4,6 +4,7 @@ import {
   createJourney,
   deleteJourney,
   finishJourney,
+  reopenJourney,
   getJourneys,
   getJourneysByTournamentId,
   updateJourney,
@@ -21,6 +22,7 @@ type JourneyStore = {
   editJourney: (journey: Journey) => void;
   removeJourney: (journeyId: number) => void;
   finishJourney: (journeyId: number) => Promise<void>;
+  reopenJourney: (journeyId: number) => Promise<void>;
 };
 
 export const useJourneyStore = create<JourneyStore>((set) => ({
@@ -105,6 +107,16 @@ export const useJourneyStore = create<JourneyStore>((set) => ({
   finishJourney: async (journeyId) => {
     try {
       const updated = await finishJourney(journeyId);
+      useJourneyStore.getState().editJourney(updated);
+    } catch (error) {
+      console.error(error);
+      throw error;
+    }
+  },
+
+  reopenJourney: async (journeyId) => {
+    try {
+      const updated = await reopenJourney(journeyId);
       useJourneyStore.getState().editJourney(updated);
     } catch (error) {
       console.error(error);

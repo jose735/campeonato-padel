@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Flag } from "lucide-react";
+import { Flag, RotateCcw } from "lucide-react";
 
 import { useJourneyStore } from "@/store/journey-store";
 import { useJourneyMatchStore } from "@/store/journey-match-store";
 import { usePlayerStore } from "@/store/player-store";
 import { useTournamentStore } from "@/store/tournament-store";
+import { useAuthStore } from "@/store/auth-store";
+import { can } from "@/lib/permissions";
 
 import RoundSection from "@/components/journeys/RoundSection";
 import JourneyStandings from "@/components/journeys/JourneyStandings";
@@ -19,7 +21,13 @@ export default function JourneyDetailPage() {
   const journeyId = Number(id);
   const navigate = useNavigate();
 
-  const { journeys, fetchJourneys, finishJourney } = useJourneyStore();
+  const role = useAuthStore((s) => s.role);
+  const canFinish = can.finishJourney(role);
+  const canEdit = can.editRound(role);
+  const canReopen = can.reopenJourney(role);
+
+  const { journeys, fetchJourneys, finishJourney, reopenJourney } =
+    useJourneyStore();
 
   const { tournaments, fetchTournaments } = useTournamentStore();
 
@@ -29,6 +37,7 @@ export default function JourneyDetailPage() {
     useJourneyMatchStore();
 
   const [isFinishing, setIsFinishing] = useState(false);
+  const [isReopening, setIsReopening] = useState(false);
 
   useEffect(() => {
     fetchJourneys();
@@ -57,9 +66,7 @@ export default function JourneyDetailPage() {
 
     for (const match of matches) {
       const list = grouped.get(match.round) ?? [];
-
       list.push(match);
-
       grouped.set(match.round, list);
     }
 
@@ -71,12 +78,6 @@ export default function JourneyDetailPage() {
     [matches, players],
   );
 
-  /**
-   * Actualiza un partido.
-   *
-   * RoundSection se encarga de llamar esta función
-   * para cada partido de la ronda que haya cambiado.
-   */
   const handleSaveRound = async (
     roundMatches: {
       matchId: number;
@@ -127,6 +128,24 @@ export default function JourneyDetailPage() {
     }
   };
 
+  const handleReopenJourney = async () => {
+    if (!journey || !isLocked) return;
+
+    const confirmed = window.confirm(
+      "¿Reabrir esta jornada?\n\nSe habilitará nuevamente la edición de marcadores.",
+    );
+
+    if (!confirmed) return;
+
+    setIsReopening(true);
+
+    try {
+      await reopenJourney(journey.id);
+    } finally {
+      setIsReopening(false);
+    }
+  };
+
   if (!journeyId || Number.isNaN(journeyId)) {
     return <p className="text-danger-600">ID de jornada inválido.</p>;
   }
@@ -158,21 +177,36 @@ export default function JourneyDetailPage() {
             </p>
           </div>
 
-          {!isLocked ? (
-            <Button
-              variant="secondary"
-              icon={Flag}
-              onClick={handleFinishJourney}
-              isLoading={isFinishing}
-              className="border-warning-300 bg-warning-50 text-warning-700 hover:bg-warning-100"
-            >
-              Finalizar jornada
-            </Button>
-          ) : (
-            <span className="self-start rounded-full bg-neutral-100 px-3 py-1.5 text-sm font-medium text-neutral-500">
-              Jornada finalizada
-            </span>
-          )}
+          <div className="flex flex-wrap items-center gap-2">
+            {!isLocked && canFinish && (
+              <Button
+                variant="secondary"
+                icon={Flag}
+                onClick={handleFinishJourney}
+                isLoading={isFinishing}
+                className="border-warning-300 bg-warning-50 text-warning-700 hover:bg-warning-100"
+              >
+                Finalizar jornada
+              </Button>
+            )}
+
+            {isLocked && canReopen && (
+              <Button
+                variant="secondary"
+                icon={RotateCcw}
+                onClick={handleReopenJourney}
+                isLoading={isReopening}
+              >
+                Reabrir jornada
+              </Button>
+            )}
+
+            {isLocked && !canReopen && (
+              <span className="self-start rounded-full bg-neutral-100 px-3 py-1.5 text-sm font-medium text-neutral-500">
+                Jornada finalizada
+              </span>
+            )}
+          </div>
         </div>
       </div>
 
@@ -194,6 +228,7 @@ export default function JourneyDetailPage() {
                 players={players}
                 scoreLimit={journey.scoreLimit}
                 isLocked={isLocked}
+                canEdit={canEdit}
                 onSaveRound={handleSaveRound}
               />
             ))}

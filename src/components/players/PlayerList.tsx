@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Trash2 } from 'lucide-react';
+import { Pencil, Trash2 } from 'lucide-react';
 import type { Player } from '@/types';
 import Button from '@/components/ui/Button';
 import Pagination from '@/components/ui/Pagination';
@@ -8,6 +8,7 @@ import { usePagination } from '@/hooks/usePagination';
 
 interface PlayerListProps {
   players: Player[];
+  onEdit?: (player: Player) => void;
   onDelete?: (id: number) => void;
   pageSize?: number;
 }
@@ -19,7 +20,12 @@ function normalize(value: string): string {
     .replace(/[\u0300-\u036f]/g, '');
 }
 
-export default function PlayerList({ players, onDelete, pageSize = 7 }: PlayerListProps) {
+export default function PlayerList({
+  players,
+  onEdit,
+  onDelete,
+  pageSize = 7,
+}: PlayerListProps) {
   const [search, setSearch] = useState('');
 
   const filteredPlayers = useMemo(() => {
@@ -72,10 +78,28 @@ export default function PlayerList({ players, onDelete, pageSize = 7 }: PlayerLi
                   </p>
                 )}
               </div>
-              {onDelete && (
-                <Button variant="danger" icon={Trash2} onClick={() => onDelete(player.id)}>
-                  Eliminar
-                </Button>
+
+              {(onEdit || onDelete) && (
+                <div className="flex items-center gap-2">
+                  {onEdit && (
+                    <Button
+                      variant="secondary"
+                      icon={Pencil}
+                      onClick={() => onEdit(player)}
+                    >
+                      Editar
+                    </Button>
+                  )}
+                  {onDelete && (
+                    <Button
+                      variant="danger"
+                      icon={Trash2}
+                      onClick={() => onDelete(player.id)}
+                    >
+                      Eliminar
+                    </Button>
+                  )}
+                </div>
               )}
             </li>
           ))}

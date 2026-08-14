@@ -1,4 +1,3 @@
-// src/pages/HomePage.tsx
 import { Link } from 'react-router-dom';
 import { CalendarDays, Trophy, Users, BarChart3, ArrowRight } from 'lucide-react';
 import { useAuthStore } from '@/store/auth-store';
@@ -34,12 +33,17 @@ const links = [
 export default function HomePage() {
   const role = useAuthStore((s) => s.role);
 
+  const sessionLabel =
+    role === 'admin'
+      ? 'Sesión de administrador'
+      : role === 'coordinador'
+        ? 'Sesión de coordinador'
+        : 'Sesión de invitado';
+
   return (
     <div className="flex flex-col gap-8 lg:gap-6">
       <section className="rounded-xl border border-neutral-200 bg-white p-6 shadow-sm sm:p-8">
-        <p className="text-sm font-medium text-primary-600">
-          {role === 'admin' ? 'Sesión de administrador' : 'Sesión de invitado'}
-        </p>
+        <p className="text-sm font-medium text-primary-600">{sessionLabel}</p>
         <h2 className="mt-1 text-2xl font-semibold text-neutral-800 sm:text-3xl">
           Bienvenido a Torneo Pádel
         </h2>

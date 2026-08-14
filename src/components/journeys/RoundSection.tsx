@@ -9,6 +9,7 @@ interface RoundSectionProps {
   players: Player[];
   scoreLimit: number;
   isLocked: boolean;
+  canEdit?: boolean;
   onSaveRound: (
     matches: {
       matchId: number;
@@ -29,6 +30,7 @@ export default function RoundSection({
   players,
   scoreLimit,
   isLocked,
+  canEdit = false,
   onSaveRound,
 }: RoundSectionProps) {
   const [isOpen, setIsOpen] = useState(false);
@@ -72,69 +74,69 @@ export default function RoundSection({
   };
 
   const handleSave = async () => {
-  const updates = matches.map((match) => {
-    const current = scores[match.id];
+    const updates = matches.map((match) => {
+      const current = scores[match.id];
 
-    const scoreA = current?.scoreA ?? null;
-    const scoreB = current?.scoreB ?? null;
+      const scoreA = current?.scoreA ?? null;
+      const scoreB = current?.scoreB ?? null;
 
-    // Partido sin resultado
-    if (scoreA === null && scoreB === null) {
+      // Partido sin resultado
+      if (scoreA === null && scoreB === null) {
+        return {
+          matchId: match.id,
+          scoreA: 0,
+          scoreB: 0,
+          pointsObtained: 0,
+        };
+      }
+
       return {
         matchId: match.id,
-        scoreA: 0,
-        scoreB: 0,
-        pointsObtained: 0,
+        scoreA: scoreA ?? 0,
+        scoreB: scoreB ?? 0,
+        pointsObtained: scoreA === scoreB ? 1 : 2,
       };
+    });
+
+    // Un partido es inválido únicamente si:
+    // - tiene un solo marcador
+    // - o la suma de sus marcadores no coincide con scoreLimit
+    const hasInvalidScore = matches.some((match) => {
+      const current = scores[match.id];
+
+      const scoreA = current?.scoreA ?? null;
+      const scoreB = current?.scoreB ?? null;
+
+      // Partido vacío: permitido
+      if (scoreA === null && scoreB === null) {
+        return false;
+      }
+
+      // Uno de los dos valores está vacío: inválido
+      if (scoreA === null || scoreB === null) {
+        return true;
+      }
+
+      // Ambos valores deben sumar el límite
+      return (
+        scoreA < 0 ||
+        scoreB < 0 ||
+        scoreA + scoreB !== scoreLimit
+      );
+    });
+
+    if (hasInvalidScore) return;
+
+    setIsSaving(true);
+
+    try {
+      await onSaveRound(updates);
+      setIsEditing(false);
+      setScores({});
+    } finally {
+      setIsSaving(false);
     }
-
-    return {
-      matchId: match.id,
-      scoreA: scoreA ?? 0,
-      scoreB: scoreB ?? 0,
-      pointsObtained: scoreA === scoreB ? 1 : 2,
-    };
-  });
-
-  // Un partido es inválido únicamente si:
-  // - tiene un solo marcador
-  // - o la suma de sus marcadores no coincide con scoreLimit
-  const hasInvalidScore = matches.some((match) => {
-    const current = scores[match.id];
-
-    const scoreA = current?.scoreA ?? null;
-    const scoreB = current?.scoreB ?? null;
-
-    // Partido vacío: permitido
-    if (scoreA === null && scoreB === null) {
-      return false;
-    }
-
-    // Uno de los dos valores está vacío: inválido
-    if (scoreA === null || scoreB === null) {
-      return true;
-    }
-
-    // Ambos valores deben sumar el límite
-    return (
-      scoreA < 0 ||
-      scoreB < 0 ||
-      scoreA + scoreB !== scoreLimit
-    );
-  });
-
-  if (hasInvalidScore) return;
-
-  setIsSaving(true);
-
-  try {
-    await onSaveRound(updates);
-    setIsEditing(false);
-    setScores({});
-  } finally {
-    setIsSaving(false);
-  }
-};
+  };
 
   return (
     <section className="overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-sm">
@@ -189,53 +191,50 @@ export default function RoundSection({
       {/* Contenido */}
       {isOpen && (
         <div className="border-t border-neutral-100 px-4 py-4">
-          <div
-            className={`grid gap-3 ${
-              matches.length > 1 ? "lg:grid-cols-2" : "grid-cols-1"
-            }`}
-          >
-            {matches.map((match) => {
-              const currentScores = scores[match.id];
-              const registered = isRegistered(match);
+          <div className="overflow-hidden rounded-xl border border-neutral-200 divide-y divide-neutral-100">
+      {matches.map((match) => {
+        const currentScores = scores[match.id];
+        const registered = isRegistered(match);
 
-              const scoreA = isEditing
-                ? (currentScores?.scoreA ?? null)
-                : registered
-                  ? match.scoreA
-                  : null;
+        const scoreA = isEditing
+          ? (currentScores?.scoreA ?? null)
+          : registered
+            ? match.scoreA
+            : null;
 
-              const scoreB = isEditing
-                ? (currentScores?.scoreB ?? null)
-                : registered
-                  ? match.scoreB
-                  : null;
+        const scoreB = isEditing
+          ? (currentScores?.scoreB ?? null)
+          : registered
+            ? match.scoreB
+            : null;
 
-              return (
-                <MatchCard
-                  key={match.id}
-                  match={match}
-                  players={players}
-                  scoreLimit={scoreLimit}
-                  isLocked={isLocked}
-                  isEditing={isEditing}
-                  scoreA={scoreA}
-                  scoreB={scoreB}
-                  onScoreChange={(scoreA, scoreB) => {
-                    setScores((prev) => ({
-                      ...prev,
-                      [match.id]: {
-                        scoreA,
-                        scoreB,
-                      },
-                    }));
-                  }}
-                />
-              );
-            })}
-          </div>
+        return (
+          <MatchCard
+            key={match.id}
+            match={match}
+            players={players}
+            scoreLimit={scoreLimit}
+            isLocked={isLocked}
+            isEditing={isEditing}
+            scoreA={scoreA}
+            scoreB={scoreB}
+            grouped
+            onScoreChange={(scoreA, scoreB) => {
+              setScores((prev) => ({
+                ...prev,
+                [match.id]: {
+                  scoreA,
+                  scoreB,
+                },
+              }));
+            }}
+          />
+        );
+      })}
+    </div>
 
           {/* Acciones de la ronda */}
-          {!isLocked && (
+          {!isLocked && canEdit && (
             <div className="mt-4 flex justify-end border-t border-neutral-100 pt-4">
               {!isEditing ? (
                 <button

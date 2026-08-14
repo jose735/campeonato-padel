@@ -12,16 +12,12 @@ interface MatchCardProps {
     scoreA: number | null,
     scoreB: number | null,
   ) => void;
+  /** Cuando es true, se renderiza sin borde/sombra propios (para agrupar en RoundSection) */
+  grouped?: boolean;
 }
 
 function getPlayer(players: Player[], id: number): Player | undefined {
   return players.find((p) => p.id === id);
-}
-
-function initials(player?: Player): string {
-  if (!player) return "?";
-
-  return `${player.firstName[0] ?? ""}${player.lastName[0] ?? ""}`.toUpperCase();
 }
 
 function teamLabel(p1?: Player, p2?: Player): string {
@@ -32,26 +28,6 @@ function teamLabel(p1?: Player, p2?: Player): string {
 
 function isRegistered(match: JourneyMatch): boolean {
   return match.scoreA > 0 || match.scoreB > 0 || match.pointsObtained > 0;
-}
-
-function TeamAvatars({
-  p1,
-  p2,
-}: {
-  p1?: Player;
-  p2?: Player;
-}) {
-  return (
-    <div className="flex shrink-0 -space-x-2.5">
-      <div className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-white bg-primary-100 text-[11px] font-semibold text-primary-700">
-        {initials(p1)}
-      </div>
-
-      <div className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-white bg-primary-100 text-[11px] font-semibold text-primary-700">
-        {initials(p2)}
-      </div>
-    </div>
-  );
 }
 
 interface TeamRowProps {
@@ -67,8 +43,6 @@ interface TeamRowProps {
 
 function TeamRow({
   label,
-  p1,
-  p2,
   score,
   isEditing,
   isWinner,
@@ -82,8 +56,6 @@ function TeamRow({
       }`}
     >
       <div className="flex min-w-0 items-center gap-3">
-        <TeamAvatars p1={p1} p2={p2} />
-
         <p
           className={`truncate text-sm ${
             isWinner
@@ -127,6 +99,7 @@ export default function MatchCard({
   scoreA,
   scoreB,
   onScoreChange,
+  grouped = false,
 }: MatchCardProps) {
   const registered = isRegistered(match);
 
@@ -183,7 +156,13 @@ export default function MatchCard({
   };
 
   return (
-    <div className="overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-sm transition-shadow hover:shadow-md">
+    <div
+      className={
+        grouped
+          ? "bg-white"
+          : "overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-sm transition-shadow hover:shadow-md"
+      }
+    >
       {/* Header */}
       <div className="flex items-center justify-between border-b border-neutral-100 px-4 py-2">
         {match.fieldNumber != null && (
@@ -211,7 +190,7 @@ export default function MatchCard({
         )}
       </div>
 
-      {/* Equipos */}
+      {/* Equipos (sin separador VS) */}
       <div className="flex flex-col gap-0.5 px-2 py-2">
         <TeamRow
           label={teamLabel(playerA1, playerA2)}
@@ -223,16 +202,6 @@ export default function MatchCard({
           scoreLimit={scoreLimit}
           onScoreChange={handleScoreAChange}
         />
-
-        <div className="flex items-center gap-3 px-3">
-          <div className="h-px flex-1 bg-neutral-100" />
-
-          <span className="text-[10px] font-semibold tracking-wide text-neutral-300">
-            VS
-          </span>
-
-          <div className="h-px flex-1 bg-neutral-100" />
-        </div>
 
         <TeamRow
           label={teamLabel(playerB1, playerB2)}

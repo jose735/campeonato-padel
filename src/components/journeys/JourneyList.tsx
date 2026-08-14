@@ -7,6 +7,7 @@ import SearchInput from "@/components/ui/SearchInput";
 import SegmentedControl from "@/components/ui/SegmentedControl";
 import { usePagination } from "@/hooks/usePagination";
 import { useAuthStore } from "@/store/auth-store";
+import { can } from "@/lib/permissions";
 import { deleteCompleteJourney } from "@/services/journeyDeletionService";
 
 interface JourneyListProps {
@@ -45,7 +46,8 @@ export default function JourneyList({
     useState<number | null>(null);
 
   const role = useAuthStore((state) => state.role);
-  const isAdmin = role === "admin";
+  const canManagePlayers = can.manageJourneyPlayers(role);
+  const canDelete = can.deleteJourney(role);
 
   const getTournamentName = (tournamentId: number) =>
     tournaments.find((t) => t.id === tournamentId)?.description ??
@@ -169,7 +171,7 @@ export default function JourneyList({
                   <p className="mt-0.5 flex items-center gap-1.5 text-sm text-neutral-500">
                     <Calendar size={14} />
                     {journey.journeyDate} ·{" "}
-                    {journey.fieldsQuantity} cancha(s) · hasta{" "}
+                    {journey.fieldsQuantity} cancha(s) · {" "}
                     {journey.scoreLimit} pts
                   </p>
                 </div>
@@ -187,19 +189,21 @@ export default function JourneyList({
                       Ver partidos
                     </Button>
                   ) : (
-                    <Button
-                      variant="secondary"
-                      icon={Users}
-                      onClick={() =>
-                        onManagePlayers(journey.id)
-                      }
-                      disabled={isDeleting}
-                    >
-                      Agregar jugadores
-                    </Button>
+                    canManagePlayers && (
+                      <Button
+                        variant="secondary"
+                        icon={Users}
+                        onClick={() =>
+                          onManagePlayers(journey.id)
+                        }
+                        disabled={isDeleting}
+                      >
+                        Agregar jugadores
+                      </Button>
+                    )
                   )}
 
-                  {isAdmin && (
+                  {canDelete && (
                     <Button
                       variant="danger"
                       icon={isDeleting ? Loader2 : Trash2}

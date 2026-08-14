@@ -4,6 +4,8 @@ import { CalendarDays } from "lucide-react";
 import { useTournamentStore } from "@/store/tournament-store";
 import { useJourneyStore } from "@/store/journey-store";
 import { useJourneyMatchStore } from "@/store/journey-match-store";
+import { useAuthStore } from "@/store/auth-store";
+import { can } from "@/lib/permissions";
 import JourneyForm from "@/components/journeys/JourneyForm";
 import JourneyList from "@/components/journeys/JourneyList";
 import PlayerSelectionModal from "@/components/journeys/PlayerSelectionModal";
@@ -11,6 +13,7 @@ import Card from "@/components/ui/Card";
 
 export default function JourneysPage() {
   const navigate = useNavigate();
+  const role = useAuthStore((s) => s.role);
 
   const {
     tournaments,
@@ -50,20 +53,23 @@ export default function JourneysPage() {
         </h2>
 
         <p className="mt-1 text-sm text-neutral-500">
-          Creá fechas, asigná jugadores y generá los partidos
-          automáticamente.
+          {can.createJourney(role)
+            ? "Creá fechas, asigná jugadores y generá los partidos automáticamente."
+            : "Consultá las jornadas registradas y sus partidos."}
         </p>
       </div>
 
-      <Card
-        title="Nueva jornada"
-        description="Completá los datos para registrar una fecha."
-      >
-        <JourneyForm
-          tournaments={tournaments}
-          onSubmit={createJourney}
-        />
-      </Card>
+      {can.createJourney(role) && (
+        <Card
+          title="Nueva jornada"
+          description="Completá los datos para registrar una fecha."
+        >
+          <JourneyForm
+            tournaments={tournaments}
+            onSubmit={createJourney}
+          />
+        </Card>
+      )}
 
       <Card
         title="Listado de jornadas"

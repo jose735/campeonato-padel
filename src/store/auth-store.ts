@@ -1,10 +1,11 @@
 import { create } from 'zustand';
 
-export type UserRole = 'guest' | 'admin';
+export type UserRole = 'guest' | 'coordinador' | 'admin';
 
 type AuthState = {
   role: UserRole | null;
   loginAsGuest: () => void;
+  loginAsCoordinador: (password: string) => boolean;
   loginAsAdmin: (password: string) => boolean;
   logout: () => void;
   hydrate: () => void;
@@ -17,7 +18,7 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   hydrate: () => {
     const saved = sessionStorage.getItem(STORAGE_KEY);
-    if (saved === 'guest' || saved === 'admin') {
+    if (saved === 'guest' || saved === 'coordinador' || saved === 'admin') {
       set({ role: saved });
     }
   },
@@ -25,6 +26,16 @@ export const useAuthStore = create<AuthState>((set) => ({
   loginAsGuest: () => {
     sessionStorage.setItem(STORAGE_KEY, 'guest');
     set({ role: 'guest' });
+  },
+
+  loginAsCoordinador: (password: string) => {
+    const expected = import.meta.env.VITE_COORDINADOR_PASSWORD;
+    if (!expected || password !== expected) {
+      return false;
+    }
+    sessionStorage.setItem(STORAGE_KEY, 'coordinador');
+    set({ role: 'coordinador' });
+    return true;
   },
 
   loginAsAdmin: (password: string) => {

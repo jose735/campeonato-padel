@@ -9,6 +9,7 @@ import {
   LogOut,
   ShieldCheck,
   UserRound,
+  UserCog,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/auth-store';
 
@@ -34,7 +35,20 @@ interface SidebarProps {
 export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const role = useAuthStore((s) => s.role);
   const logout = useAuthStore((s) => s.logout);
-  const isAdmin = role === 'admin';
+
+  const roleLabel =
+    role === 'admin'
+      ? 'Administrador'
+      : role === 'coordinador'
+        ? 'Coordinador'
+        : 'Invitado';
+
+  const roleDescription =
+    role === 'admin'
+      ? 'Acceso completo'
+      : role === 'coordinador'
+        ? 'Gestión de jornadas'
+        : 'Solo consulta';
 
   return (
     <>
@@ -96,7 +110,11 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                   <>
                     <Icon
                       size={18}
-                      className={isActive ? 'text-white' : 'text-neutral-400 group-hover:text-neutral-600'}
+                      className={
+                        isActive
+                          ? 'text-white'
+                          : 'text-neutral-400 group-hover:text-neutral-600'
+                      }
                     />
                     {item.label}
                   </>
@@ -111,20 +129,26 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
           <div className="mb-3 flex items-center gap-3 rounded-lg bg-neutral-50 px-3 py-2.5">
             <div
               className={`flex h-8 w-8 items-center justify-center rounded-full ${
-                isAdmin
+                role === 'admin'
                   ? 'bg-primary-100 text-primary-700'
-                  : 'bg-neutral-200 text-neutral-600'
+                  : role === 'coordinador'
+                    ? 'bg-accent-100 text-accent-700'
+                    : 'bg-neutral-200 text-neutral-600'
               }`}
             >
-              {isAdmin ? <ShieldCheck size={16} /> : <UserRound size={16} />}
+              {role === 'admin' ? (
+                <ShieldCheck size={16} />
+              ) : role === 'coordinador' ? (
+                <UserCog size={16} />
+              ) : (
+                <UserRound size={16} />
+              )}
             </div>
             <div className="min-w-0">
               <p className="truncate text-sm font-medium text-neutral-800">
-                {isAdmin ? 'Administrador' : 'Invitado'}
+                {roleLabel}
               </p>
-              <p className="text-[11px] text-neutral-400">
-                {isAdmin ? 'Acceso completo' : 'Acceso de consulta y jornadas'}
-              </p>
+              <p className="text-[11px] text-neutral-400">{roleDescription}</p>
             </div>
           </div>
 
