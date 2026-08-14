@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { CalendarDays } from "lucide-react";
+import { CalendarDays, ChevronDown } from "lucide-react";
 import { useTournamentStore } from "@/store/tournament-store";
 import { useJourneyStore } from "@/store/journey-store";
 import { useJourneyMatchStore } from "@/store/journey-match-store";
@@ -35,6 +35,8 @@ export default function JourneysPage() {
   const [activeJourneyId, setActiveJourneyId] =
     useState<number | null>(null);
 
+  const [isFormOpen, setIsFormOpen] = useState(false);
+
   useEffect(() => {
     fetchTournaments();
     fetchJourneys();
@@ -44,6 +46,15 @@ export default function JourneysPage() {
     fetchJourneys,
     fetchJourneyIdsWithMatches,
   ]);
+
+  // Más recientes primero (por fecha de jornada, y si empatan por id)
+  const sortedJourneys = useMemo(() => {
+    return [...journeys].sort((a, b) => {
+      const dateCompare = b.journeyDate.localeCompare(a.journeyDate);
+      if (dateCompare !== 0) return dateCompare;
+      return b.id - a.id;
+    });
+  }, [journeys]);
 
   return (
     <div className="flex flex-col gap-8 lg:gap-6">
@@ -60,30 +71,54 @@ export default function JourneysPage() {
       </div>
 
       {can.createJourney(role) && (
-        <Card
-          title="Nueva jornada"
-          description="Completá los datos para registrar una fecha."
-        >
-          <JourneyForm
-            tournaments={tournaments}
-            onSubmit={createJourney}
-          />
-        </Card>
+        <div className="overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-sm">
+          <button
+            type="button"
+            onClick={() => setIsFormOpen((prev) => !prev)}
+            className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left transition-colors hover:bg-neutral-50 sm:px-6"
+            aria-expanded={isFormOpen}
+          >
+            <div>
+              <h3 className="text-base font-semibold text-neutral-800">
+                Nueva jornada
+              </h3>
+              <p className="mt-0.5 text-sm text-neutral-500">
+                Completá los datos para registrar una fecha.
+              </p>
+            </div>
+
+            <ChevronDown
+              size={18}
+              className={`shrink-0 text-neutral-400 transition-transform duration-200 ${
+                isFormOpen ? "rotate-180" : ""
+              }`}
+            />
+          </button>
+
+          {isFormOpen && (
+            <div className="border-t border-neutral-100 px-5 py-5 sm:px-6">
+              <JourneyForm
+                tournaments={tournaments}
+                onSubmit={createJourney}
+              />
+            </div>
+          )}
+        </div>
       )}
 
       <Card
         title="Listado de jornadas"
-        description={`${journeys.length} jornada${
-          journeys.length === 1 ? "" : "s"
+        description={`${sortedJourneys.length} jornada${
+          sortedJourneys.length === 1 ? "" : "s"
         } registrada${
-          journeys.length === 1 ? "" : "s"
+          sortedJourneys.length === 1 ? "" : "s"
         }.`}
       >
         {isLoading ? (
           <p className="text-sm text-neutral-500">
             Cargando...
           </p>
-        ) : journeys.length === 0 ? (
+        ) : sortedJourneys.length === 0 ? (
           <div className="flex flex-col items-center gap-2 py-8 text-center">
             <CalendarDays
               className="text-neutral-300"
@@ -96,7 +131,7 @@ export default function JourneysPage() {
           </div>
         ) : (
           <JourneyList
-            journeys={journeys}
+            journeys={sortedJourneys}
             tournaments={tournaments}
             journeyIdsWithMatches={journeyIdsWithMatches}
             onManagePlayers={setActiveJourneyId}
