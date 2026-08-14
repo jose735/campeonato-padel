@@ -73,6 +73,24 @@ export default function RoundSection({
     setIsEditing(false);
   };
 
+  const handleClearRound = () => {
+    const cleared: Record<
+      number,
+      { scoreA: number | null; scoreB: number | null }
+    > = {};
+
+    matches.forEach((match) => {
+      cleared[match.id] = {
+        scoreA: null,
+        scoreB: null,
+      };
+    });
+
+    setScores(cleared);
+    setIsEditing(true);
+    setIsOpen(true);
+  };
+
   const handleSave = async () => {
     const updates = matches.map((match) => {
       const current = scores[match.id];
@@ -118,11 +136,7 @@ export default function RoundSection({
       }
 
       // Ambos valores deben sumar el límite
-      return (
-        scoreA < 0 ||
-        scoreB < 0 ||
-        scoreA + scoreB !== scoreLimit
-      );
+      return scoreA < 0 || scoreB < 0 || scoreA + scoreB !== scoreLimit;
     });
 
     if (hasInvalidScore) return;
@@ -192,61 +206,80 @@ export default function RoundSection({
       {isOpen && (
         <div className="border-t border-neutral-100 px-4 py-4">
           <div className="overflow-hidden rounded-xl border border-neutral-200 divide-y divide-neutral-100">
-      {matches.map((match) => {
-        const currentScores = scores[match.id];
-        const registered = isRegistered(match);
+            {matches.map((match) => {
+              const currentScores = scores[match.id];
+              const registered = isRegistered(match);
 
-        const scoreA = isEditing
-          ? (currentScores?.scoreA ?? null)
-          : registered
-            ? match.scoreA
-            : null;
+              const scoreA = isEditing
+                ? (currentScores?.scoreA ?? null)
+                : registered
+                  ? match.scoreA
+                  : null;
 
-        const scoreB = isEditing
-          ? (currentScores?.scoreB ?? null)
-          : registered
-            ? match.scoreB
-            : null;
+              const scoreB = isEditing
+                ? (currentScores?.scoreB ?? null)
+                : registered
+                  ? match.scoreB
+                  : null;
 
-        return (
-          <MatchCard
-            key={match.id}
-            match={match}
-            players={players}
-            scoreLimit={scoreLimit}
-            isLocked={isLocked}
-            isEditing={isEditing}
-            scoreA={scoreA}
-            scoreB={scoreB}
-            grouped
-            onScoreChange={(scoreA, scoreB) => {
-              setScores((prev) => ({
-                ...prev,
-                [match.id]: {
-                  scoreA,
-                  scoreB,
-                },
-              }));
-            }}
-          />
-        );
-      })}
-    </div>
+              return (
+                <MatchCard
+                  key={match.id}
+                  match={match}
+                  players={players}
+                  scoreLimit={scoreLimit}
+                  isLocked={isLocked}
+                  isEditing={isEditing}
+                  scoreA={scoreA}
+                  scoreB={scoreB}
+                  grouped
+                  onScoreChange={(scoreA, scoreB) => {
+                    setScores((prev) => ({
+                      ...prev,
+                      [match.id]: {
+                        scoreA,
+                        scoreB,
+                      },
+                    }));
+                  }}
+                />
+              );
+            })}
+          </div>
 
           {/* Acciones de la ronda */}
           {!isLocked && canEdit && (
             <div className="mt-4 flex justify-end border-t border-neutral-100 pt-4">
               {!isEditing ? (
-                <button
-                  type="button"
-                  onClick={handleStartEditing}
-                  className="inline-flex items-center gap-1.5 rounded-md border border-neutral-300 bg-white px-3 py-1.5 text-xs font-medium text-neutral-700 hover:bg-neutral-100"
-                >
-                  <Pencil size={13} />
-                  Editar ronda
-                </button>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={handleClearRound}
+                    className="inline-flex items-center gap-1.5 rounded-md border border-neutral-300 bg-white px-3 py-1.5 text-xs font-medium text-neutral-700 hover:bg-neutral-100"
+                  >
+                    Limpiar ronda
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleStartEditing}
+                    className="inline-flex items-center gap-1.5 rounded-md border border-neutral-300 bg-white px-3 py-1.5 text-xs font-medium text-neutral-700 hover:bg-neutral-100"
+                  >
+                    <Pencil size={13} />
+                    Editar ronda
+                  </button>
+                </div>
               ) : (
-                <div className="flex w-full flex-col-reverse gap-2 sm:w-auto sm:flex-row">
+                <div className="flex w-full flex-col-reverse gap-2 sm:w-auto sm:flex-row sm:flex-wrap">
+                  <button
+                    type="button"
+                    onClick={handleClearRound}
+                    disabled={isSaving}
+                    className="rounded-md border border-neutral-300 bg-white px-3 py-1.5 text-xs font-medium text-neutral-700 hover:bg-neutral-100 disabled:opacity-50"
+                  >
+                    Limpiar ronda
+                  </button>
+
                   <button
                     type="button"
                     onClick={handleCancelEditing}
