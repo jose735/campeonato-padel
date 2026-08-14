@@ -41,6 +41,20 @@ export default function PlayerSelectionModal({
     fetchPlayers();
   }, [fetchPlayers]);
 
+  const toggleSelection = (playerId: number) => {
+  setSelectedIds((prev) => {
+    if (prev.includes(playerId)) {
+      return prev.filter((id) => id !== playerId);
+    }
+
+    if (prev.length >= maxPlayers) {
+      return prev;
+    }
+
+    return [...prev, playerId];
+  });
+};
+
   const seedMap = useMemo(() => {
     const shuffled = shuffle(selectedIds);
     const map = new Map<number, number>();
@@ -49,20 +63,20 @@ export default function PlayerSelectionModal({
   }, [selectedIds]);
 
   const filteredPlayers = useMemo(() => {
-    const term = search.trim().toLowerCase();
-    if (!term) return players;
-    return players.filter((p) => p.displayName.toLowerCase().includes(term));
-  }, [players, search]);
+  const term = search.trim().toLowerCase();
 
-  const toggleSelection = (playerId: number) => {
-    setSelectedIds((prev) => {
-      if (prev.includes(playerId)) {
-        return prev.filter((id) => id !== playerId);
-      }
-      if (prev.length >= maxPlayers) return prev; // no deja pasar del límite
-      return [...prev, playerId];
-    });
-  };
+  const sortedPlayers = [...players].sort((a, b) =>
+    a.displayName.localeCompare(b.displayName, "es", {
+      sensitivity: "base",
+    }),
+  );
+
+  if (!term) return sortedPlayers;
+
+  return sortedPlayers.filter((p) =>
+    p.displayName.toLowerCase().includes(term),
+  );
+}, [players, search]);
 
   const isValidCount = selectedIds.length === maxPlayers;
   const remainder = selectedIds.length % 4;

@@ -52,12 +52,15 @@ export function calculateStandings(
         pointsAgainst: 0,
       });
     }
+
     return stats.get(playerId)!;
   };
 
   for (const match of matches) {
     const hasScore =
-      match.scoreA > 0 || match.scoreB > 0 || match.pointsObtained > 0;
+      match.scoreA > 0 ||
+      match.scoreB > 0 ||
+      match.pointsObtained > 0;
 
     if (!hasScore) continue;
 
@@ -72,37 +75,48 @@ export function calculateStandings(
     // PF / PC en todos los partidos
     teamA.forEach((id) => {
       const row = ensure(id);
+
       row.pointsFor += match.scoreA;
       row.pointsAgainst += match.scoreB;
     });
+
     teamB.forEach((id) => {
       const row = ensure(id);
+
       row.pointsFor += match.scoreB;
       row.pointsAgainst += match.scoreA;
     });
 
-    // Puntos de ranking (2 victoria / 1 empate)
+    // Puntos de ranking:
+    // Victoria = 2 puntos
+    // Empate = 1 punto
+    // Derrota = 0 puntos
     if (match.scoreA === match.scoreB) {
       all.forEach((id) => {
         const row = ensure(id);
+
         row.points += 1;
         row.draws += 1;
       });
     } else if (match.scoreA > match.scoreB) {
       teamA.forEach((id) => {
         const row = ensure(id);
+
         row.points += 2;
         row.wins += 1;
       });
+
       teamB.forEach((id) => {
         ensure(id).losses += 1;
       });
     } else {
       teamB.forEach((id) => {
         const row = ensure(id);
+
         row.points += 2;
         row.wins += 1;
       });
+
       teamA.forEach((id) => {
         ensure(id).losses += 1;
       });
@@ -110,7 +124,8 @@ export function calculateStandings(
   }
 
   const playerName = (id: number) =>
-    players.find((p) => p.id === id)?.displayName ?? `Jugador #${id}`;
+    players.find((p) => p.id === id)?.displayName ??
+    `Jugador #${id}`;
 
   const rows: StandingRow[] = Array.from(stats.entries()).map(
     ([playerId, data]) => ({
@@ -128,24 +143,91 @@ export function calculateStandings(
     }),
   );
 
-  // Orden: puntos → diferencia → victorias → nombre
+  /**
+   * Orden de la tabla:
+   *
+   * 1. Puntos
+   * 2. Diferencia
+   * 3. Victorias
+   * 4. Empates
+   * 5. Nombre
+   *
+   * El nombre únicamente sirve para establecer un orden
+   * determinista cuando todos los criterios deportivos
+   * son exactamente iguales.
+   */
   rows.sort((a, b) => {
-    if (b.points !== a.points) return b.points - a.points;
-    if (b.difference !== a.difference) return b.difference - a.difference;
-    if (b.wins !== a.wins) return b.wins - a.wins;
-    if (b.draws !== a.draws) return b.draws - a.draws;
+    if (b.points !== a.points) {
+      return b.points - a.points;
+    }
+
+    if (b.difference !== a.difference) {
+      return b.difference - a.difference;
+    }
+
+    if (b.wins !== a.wins) {
+      return b.wins - a.wins;
+    }
+
+    if (b.draws !== a.draws) {
+      return b.draws - a.draws;
+    }
+
     return a.playerName.localeCompare(b.playerName, "es");
   });
 
-  // Posición densa: mismos puntos → misma posición
-  let currentPosition = 0;
-  let lastPoints: number | null = null;
+  /**
+   * Calculamos las posiciones después de ordenar.
+   *
+   * Dos jugadores comparten posición únicamente cuando
+   * tienen exactamente los mismos criterios de desempate:
+   *
+   * points + difference + wins + draws
+   *
+   * Si alguno de esos valores cambia, el jugador ocupa
+   * su posición real dentro del ranking.
+   *
+   * Ejemplo:
+   *
+   * A → 5 / +5 / 2 / 1 → posición 1
+   * B → 5 / +5 / 2 / 1 → posición 1
+   * C → 4 / -1 / 1 / 1 → posición 3
+   * D → 3 / -4 / 0 / 1 → posición 4
+   *
+   * Resultado:
+   * 1
+   * 1
+   * 3
+   * 4
+   */
+  let position = 1;
 
-  return rows.map((row) => {
-    if (row.points !== lastPoints) {
-      currentPosition += 1;
-      lastPoints = row.points;
+  return rows.map((row, index) => {
+    // El primer jugador siempre ocupa la posición 1.
+    if (index === 0) {
+      return {
+        ...row,
+        position: 1,
+      };
     }
-    return { ...row, position: currentPosition };
+
+    const previous = rows[index - 1];
+
+    const sameRankingCriteria =
+      row.points === previous.points &&
+      row.difference === previous.difference &&
+      row.wins === previous.wins &&
+      row.draws === previous.draws;
+
+    // Si alguno de los criterios cambia,
+    // usamos la posición real dentro del ranking.
+    if (!sameRankingCriteria) {
+      position = index + 1;
+    }
+
+    return {
+      ...row,
+      position,
+    };
   });
 }

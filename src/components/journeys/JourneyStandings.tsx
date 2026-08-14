@@ -12,6 +12,7 @@ function PositionBadge({ position }: { position: number }) {
       </span>
     );
   }
+
   if (position === 2) {
     return (
       <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-neutral-200 text-xs font-bold text-neutral-600">
@@ -19,6 +20,7 @@ function PositionBadge({ position }: { position: number }) {
       </span>
     );
   }
+
   if (position === 3) {
     return (
       <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-orange-100 text-xs font-bold text-orange-700">
@@ -26,6 +28,7 @@ function PositionBadge({ position }: { position: number }) {
       </span>
     );
   }
+
   return (
     <span className="inline-flex h-7 w-7 items-center justify-center text-xs font-medium text-neutral-400">
       {position}
@@ -33,13 +36,9 @@ function PositionBadge({ position }: { position: number }) {
   );
 }
 
-function initials(name: string): string {
-  const parts = name.trim().split(/\s+/);
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-  return `${parts[0][0] ?? ""}${parts[1][0] ?? ""}`.toUpperCase();
-}
-
-export default function JourneyStandings({ standings }: JourneyStandingsProps) {
+export default function JourneyStandings({
+  standings,
+}: JourneyStandingsProps) {
   if (standings.length === 0) {
     return (
       <div className="rounded-xl border border-dashed border-neutral-200 bg-neutral-50 px-4 py-10 text-center">
@@ -53,44 +52,63 @@ export default function JourneyStandings({ standings }: JourneyStandingsProps) {
   return (
     <div className="overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-sm">
       <div className="overflow-x-auto">
-        <table className="w-full min-w-160 text-sm">
+        <table className="w-full text-sm min-[480px]:min-w-[600px]">
           <thead>
             <tr className="border-b border-neutral-200 bg-neutral-50 text-left">
-              <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-neutral-400">
+              {/* Pos */}
+              <th className="w-12 whitespace-nowrap px-2 py-3 text-xs font-semibold uppercase tracking-wide text-neutral-400">
                 Pos
               </th>
-              <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-neutral-400">
+
+              {/* Jugador */}
+              <th className="px-2 py-3 text-xs font-semibold uppercase tracking-wide text-neutral-400">
                 Jugador
               </th>
-              <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide text-neutral-400">
+
+              {/* Pts */}
+              <th className="w-14 whitespace-nowrap px-1 py-3 text-center text-xs font-semibold uppercase tracking-wide text-neutral-400">
                 Pts
               </th>
-              <th className="px-3 py-3 text-center text-xs font-semibold uppercase tracking-wide text-neutral-400">
+
+              {/* Dif */}
+              <th className="w-14 whitespace-nowrap px-1 py-3 text-center text-xs font-semibold uppercase tracking-wide text-neutral-400">
                 Dif
               </th>
-              <th className="px-3 py-3 text-center text-xs font-semibold uppercase tracking-wide text-neutral-400">
+
+              {/* PJ */}
+              <th className="hidden w-12 whitespace-nowrap px-1.5 py-3 text-center text-xs font-semibold uppercase tracking-wide text-neutral-400 min-[480px]:table-cell">
                 PJ
               </th>
-              <th className="px-3 py-3 text-center text-xs font-semibold uppercase tracking-wide text-neutral-400">
+
+              {/* PG */}
+              <th className="hidden w-12 whitespace-nowrap px-1.5 py-3 text-center text-xs font-semibold uppercase tracking-wide text-neutral-400 min-[480px]:table-cell">
                 PG
               </th>
-              <th className="px-3 py-3 text-center text-xs font-semibold uppercase tracking-wide text-neutral-400">
+
+              {/* PE */}
+              <th className="hidden w-12 whitespace-nowrap px-1.5 py-3 text-center text-xs font-semibold uppercase tracking-wide text-neutral-400 min-[480px]:table-cell">
                 PE
               </th>
-              <th className="px-3 py-3 text-center text-xs font-semibold uppercase tracking-wide text-neutral-400">
+
+              {/* PP */}
+              <th className="hidden w-12 whitespace-nowrap px-1.5 py-3 text-center text-xs font-semibold uppercase tracking-wide text-neutral-400 min-[480px]:table-cell">
                 PP
               </th>
-              <th className="px-3 py-3 text-center text-xs font-semibold uppercase tracking-wide text-neutral-400">
+
+              {/* PF */}
+              <th className="hidden w-12 whitespace-nowrap px-1.5 py-3 text-center text-xs font-semibold uppercase tracking-wide text-neutral-400 min-[480px]:table-cell">
                 PF
               </th>
-              <th className="px-3 py-3 text-center text-xs font-semibold uppercase tracking-wide text-neutral-400">
+
+              {/* PC */}
+              <th className="hidden w-12 whitespace-nowrap px-1.5 py-3 text-center text-xs font-semibold uppercase tracking-wide text-neutral-400 min-[480px]:table-cell">
                 PC
               </th>
             </tr>
           </thead>
+
           <tbody>
             {standings.map((row, index) => {
-              const isTop3 = row.position <= 3;
               const isEven = index % 2 === 1;
 
               return (
@@ -100,32 +118,28 @@ export default function JourneyStandings({ standings }: JourneyStandingsProps) {
                     isEven ? "bg-neutral-50/40" : "bg-white"
                   }`}
                 >
-                  <td className="px-4 py-3">
+                  {/* Pos */}
+                  <td className="w-12 px-2 py-3">
                     <PositionBadge position={row.position} />
                   </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-3">
-                      <span
-                        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${
-                          isTop3
-                            ? "bg-primary-100 text-primary-700"
-                            : "bg-neutral-100 text-neutral-600"
-                        }`}
-                      >
-                        {initials(row.playerName)}
-                      </span>
-                      <span className="font-medium text-neutral-800">
-                        {row.playerName}
-                      </span>
-                    </div>
+
+                  {/* Jugador */}
+                  <td className="min-w-0 px-2 py-3">
+                    <span className="block truncate font-medium text-neutral-800">
+                      {row.playerName}
+                    </span>
                   </td>
-                  <td className="px-4 py-3 text-center">
-                    <span className="inline-flex min-w-8 items-center justify-center rounded-md bg-primary-50 px-2 py-0.5 text-sm font-bold tabular-nums text-primary-700">
+
+                  {/* Pts */}
+                  <td className="w-14 whitespace-nowrap px-1 py-3 text-center">
+                    <span className="inline-flex min-w-8 items-center justify-center rounded-md bg-primary-50 px-1.5 py-0.5 text-sm font-bold tabular-nums text-primary-700">
                       {row.points}
                     </span>
                   </td>
+
+                  {/* Dif */}
                   <td
-                    className={`px-3 py-3 text-center font-medium tabular-nums ${
+                    className={`w-14 whitespace-nowrap px-1 py-3 text-center font-medium tabular-nums ${
                       row.difference > 0
                         ? "text-success-600"
                         : row.difference < 0
@@ -133,24 +147,38 @@ export default function JourneyStandings({ standings }: JourneyStandingsProps) {
                           : "text-neutral-500"
                     }`}
                   >
-                    {row.difference > 0 ? `+${row.difference}` : row.difference}
+                    {row.difference > 0
+                      ? `+${row.difference}`
+                      : row.difference}
                   </td>
-                  <td className="px-3 py-3 text-center tabular-nums text-neutral-600">
+
+                  {/* PJ */}
+                  <td className="hidden w-12 whitespace-nowrap px-1.5 py-3 text-center tabular-nums text-neutral-600 min-[480px]:table-cell">
                     {row.matchesPlayed}
                   </td>
-                  <td className="px-3 py-3 text-center tabular-nums text-neutral-600">
+
+                  {/* PG */}
+                  <td className="hidden w-12 whitespace-nowrap px-1.5 py-3 text-center tabular-nums text-neutral-600 min-[480px]:table-cell">
                     {row.wins}
                   </td>
-                  <td className="px-3 py-3 text-center tabular-nums text-neutral-600">
+
+                  {/* PE */}
+                  <td className="hidden w-12 whitespace-nowrap px-1.5 py-3 text-center tabular-nums text-neutral-600 min-[480px]:table-cell">
                     {row.draws}
                   </td>
-                  <td className="px-3 py-3 text-center tabular-nums text-neutral-600">
+
+                  {/* PP */}
+                  <td className="hidden w-12 whitespace-nowrap px-1.5 py-3 text-center tabular-nums text-neutral-600 min-[480px]:table-cell">
                     {row.losses}
                   </td>
-                  <td className="px-3 py-3 text-center tabular-nums text-neutral-600">
+
+                  {/* PF */}
+                  <td className="hidden w-12 whitespace-nowrap px-1.5 py-3 text-center tabular-nums text-neutral-600 min-[480px]:table-cell">
                     {row.pointsFor}
                   </td>
-                  <td className="px-3 py-3 text-center tabular-nums text-neutral-600">
+
+                  {/* PC */}
+                  <td className="hidden w-12 whitespace-nowrap px-1.5 py-3 text-center tabular-nums text-neutral-600 min-[480px]:table-cell">
                     {row.pointsAgainst}
                   </td>
                 </tr>

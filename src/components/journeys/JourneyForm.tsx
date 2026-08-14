@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm, useWatch, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Calendar, Hash, Target, Trophy, Users } from "lucide-react";
@@ -28,6 +28,7 @@ export default function JourneyForm({
     handleSubmit,
     reset,
     control,
+    setValue,
     formState: { errors },
   } = useForm<CreateJourneyFormData>({
     resolver: zodResolver(
@@ -36,17 +37,21 @@ export default function JourneyForm({
     defaultValues: {
       journeyDate: getTodayDateString(),
       fieldsQuantity: 2,
-      scoreLimit: 24,
+      scoreLimit: 16,
       maxPlayers: 8,
     },
   });
 
   const fieldsQuantity = useWatch({
-  control,
-  name: "fieldsQuantity",
-});
+    control,
+    name: "fieldsQuantity",
+  });
 
   const maxPlayers = fieldsQuantity === 3 ? 12 : 8;
+
+  useEffect(() => {
+    setValue("scoreLimit", fieldsQuantity === 3 ? 24 : 16);
+  }, [fieldsQuantity, setValue]);
 
   const onValid = async (data: CreateJourneyFormData) => {
     setIsSubmitting(true);
@@ -60,7 +65,7 @@ export default function JourneyForm({
       reset({
         journeyDate: getTodayDateString(),
         fieldsQuantity: 2,
-        scoreLimit: 24,
+        scoreLimit: 16,
         maxPlayers: 8,
         tournamentId: undefined,
       });

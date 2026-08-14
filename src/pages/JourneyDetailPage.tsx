@@ -1,17 +1,18 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { Flag } from "lucide-react";
+
 import { useJourneyStore } from "@/store/journey-store";
 import { useJourneyMatchStore } from "@/store/journey-match-store";
 import { usePlayerStore } from "@/store/player-store";
 import { useTournamentStore } from "@/store/tournament-store";
+
 import RoundSection from "@/components/journeys/RoundSection";
 import JourneyStandings from "@/components/journeys/JourneyStandings";
+import Button from "@/components/ui/Button";
+
 import { calculateStandings } from "@/lib/standings";
 import type { CreateJourneyMatchInput } from "@/types";
-
-import Button from "@/components/ui/Button";
-import Card from "@/components/ui/Card";
-import { Flag } from "lucide-react";
 
 export default function JourneyDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -19,16 +20,21 @@ export default function JourneyDetailPage() {
   const navigate = useNavigate();
 
   const { journeys, fetchJourneys, finishJourney } = useJourneyStore();
+
   const { tournaments, fetchTournaments } = useTournamentStore();
+
   const { players, fetchPlayers } = usePlayerStore();
+
   const { matches, isLoading, fetchMatchesByJourneyId, updateMatch } =
     useJourneyMatchStore();
+
   const [isFinishing, setIsFinishing] = useState(false);
 
   useEffect(() => {
     fetchJourneys();
     fetchTournaments();
     fetchPlayers();
+
     if (journeyId) {
       fetchMatchesByJourneyId(journeyId);
     }
@@ -41,16 +47,22 @@ export default function JourneyDetailPage() {
   ]);
 
   const journey = journeys.find((j) => j.id === journeyId);
+
   const isLocked = journey?.status === "finished";
+
   const tournament = tournaments.find((t) => t.id === journey?.tournamentId);
 
   const matchesByRound = useMemo(() => {
     const grouped = new Map<number, typeof matches>();
+
     for (const match of matches) {
       const list = grouped.get(match.round) ?? [];
+
       list.push(match);
+
       grouped.set(match.round, list);
     }
+
     return Array.from(grouped.entries()).sort(([a], [b]) => a - b);
   }, [matches]);
 
@@ -59,29 +71,42 @@ export default function JourneyDetailPage() {
     [matches, players],
   );
 
-  const handleSaveScore = async (
-    matchId: number,
-    scoreA: number,
-    scoreB: number,
-    pointsObtained: number,
+  /**
+   * Actualiza un partido.
+   *
+   * RoundSection se encarga de llamar esta función
+   * para cada partido de la ronda que haya cambiado.
+   */
+  const handleSaveRound = async (
+    roundMatches: {
+      matchId: number;
+      scoreA: number;
+      scoreB: number;
+      pointsObtained: number;
+    }[],
   ) => {
-    const match = matches.find((m) => m.id === matchId);
-    if (!match) return;
+    await Promise.all(
+      roundMatches.map(async (roundMatch) => {
+        const match = matches.find((m) => m.id === roundMatch.matchId);
 
-    const payload: CreateJourneyMatchInput = {
-      journeyId: match.journeyId,
-      round: match.round,
-      playerA1Id: match.playerA1Id,
-      playerA2Id: match.playerA2Id,
-      playerB1Id: match.playerB1Id,
-      playerB2Id: match.playerB2Id,
-      scoreA,
-      scoreB,
-      pointsObtained,
-      fieldNumber: match.fieldNumber ?? 1,
-    };
+        if (!match) return;
 
-    await updateMatch(matchId, payload);
+        const payload: CreateJourneyMatchInput = {
+          journeyId: match.journeyId,
+          round: match.round,
+          playerA1Id: match.playerA1Id,
+          playerA2Id: match.playerA2Id,
+          playerB1Id: match.playerB1Id,
+          playerB2Id: match.playerB2Id,
+          scoreA: roundMatch.scoreA,
+          scoreB: roundMatch.scoreB,
+          pointsObtained: roundMatch.pointsObtained,
+          fieldNumber: match.fieldNumber ?? 1,
+        };
+
+        await updateMatch(match.id, payload);
+      }),
+    );
   };
 
   const handleFinishJourney = async () => {
@@ -90,9 +115,11 @@ export default function JourneyDetailPage() {
     const confirmed = window.confirm(
       "¿Finalizar esta jornada?\n\nNo se podrán modificar más marcadores. Los partidos sin jugar (0-0) no contarán en la tabla.",
     );
+
     if (!confirmed) return;
 
     setIsFinishing(true);
+
     try {
       await finishJourney(journey.id);
     } finally {
@@ -110,6 +137,7 @@ export default function JourneyDetailPage() {
 
   return (
     <div className="flex flex-col gap-8 lg:gap-6">
+      {/* Encabezado */}
       <div className="flex flex-col gap-3">
         <button
           onClick={() => navigate("/jornadas")}
@@ -118,11 +146,12 @@ export default function JourneyDetailPage() {
           ← Volver a jornadas
         </button>
 
-        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <h2 className="text-2xl font-semibold text-neutral-800">
               {tournament?.description ?? "Jornada"}
             </h2>
+
             <p className="mt-1 text-neutral-500">
               {journey.journeyDate} · {journey.fieldsQuantity} cancha(s) · hasta{" "}
               {journey.scoreLimit} pts · {matches.length} partido(s)
@@ -147,6 +176,7 @@ export default function JourneyDetailPage() {
         </div>
       </div>
 
+      {/* Partidos */}
       {isLoading ? (
         <p className="text-neutral-500">Cargando partidos...</p>
       ) : matches.length === 0 ? (
@@ -164,17 +194,17 @@ export default function JourneyDetailPage() {
                 players={players}
                 scoreLimit={journey.scoreLimit}
                 isLocked={isLocked}
-                onSaveScore={handleSaveScore}
+                onSaveRound={handleSaveRound}
               />
             ))}
           </div>
 
-          <Card
-            title="Tabla de posiciones"
-            description="Solo de esta jornada. Cada jornada inicia en 0."
-          >
-            <JourneyStandings standings={standings} />
-          </Card>
+          {/* Tabla de posiciones */}
+          <h3 className="text-base font-semibold text-neutral-800">
+            Tabla de posiciones
+          </h3>
+
+          <JourneyStandings standings={standings} />
         </>
       )}
     </div>
