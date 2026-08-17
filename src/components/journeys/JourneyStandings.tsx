@@ -3,6 +3,7 @@ import type { StandingRow } from "@/lib/standings";
 interface JourneyStandingsProps {
   standings: StandingRow[];
   showDecimals?: boolean;
+  variant?: "general" | "ponderada";
 }
 
 function PositionBadge({ position }: { position: number }) {
@@ -40,7 +41,9 @@ function PositionBadge({ position }: { position: number }) {
 export default function JourneyStandings({
   standings,
   showDecimals = false,
+  variant = "general",
 }: JourneyStandingsProps) {
+  const isPonderada = variant === "ponderada";
   if (standings.length === 0) {
     return (
       <div className="rounded-xl border border-dashed border-neutral-200 bg-neutral-50 px-4 py-10 text-center">
@@ -69,13 +72,19 @@ export default function JourneyStandings({
 
               {/* Pts */}
               <th className="w-14 whitespace-nowrap px-1 py-3 text-center text-xs font-semibold uppercase tracking-wide text-neutral-400">
-                Pts
+                {isPonderada ? "Pts/P" : "Pts"}
               </th>
 
               {/* Dif */}
               <th className="w-14 whitespace-nowrap px-1 py-3 text-center text-xs font-semibold uppercase tracking-wide text-neutral-400">
-                Dif
+                {isPonderada ? "Dif/P" : "Dif"}
               </th>
+
+              {isPonderada && (
+                <th className="w-12 whitespace-nowrap px-1.5 py-3 text-center text-xs font-semibold uppercase tracking-wide text-neutral-400">
+                  JJ
+                </th>
+              )}
 
               {/* PJ */}
               <th className="hidden w-12 whitespace-nowrap px-1.5 py-3 text-center text-xs font-semibold uppercase tracking-wide text-neutral-400 min-[480px]:table-cell">
@@ -127,7 +136,7 @@ export default function JourneyStandings({
 
                   {/* Jugador */}
                   <td className="min-w-0 px-2 py-3">
-                    <span className="block truncate font-medium text-neutral-800">
+                    <span className="block truncate font-medium text-neutral-800 text-[17px]">
                       {row.playerName}
                     </span>
                   </td>
@@ -152,6 +161,13 @@ export default function JourneyStandings({
                     {row.difference > 0 ? "+" : ""}
                     {showDecimals ? row.difference.toFixed(2) : row.difference}
                   </td>
+
+                  {/* JJ — solo ponderada */}
+                  {isPonderada && (
+                    <td className="w-12 whitespace-nowrap px-1.5 py-3 text-center font-medium tabular-nums text-neutral-600">
+                      {row.journeysPlayed}
+                    </td>
+                  )}
 
                   {/* PJ */}
                   <td className="hidden w-12 whitespace-nowrap px-1.5 py-3 text-center tabular-nums text-neutral-600 min-[480px]:table-cell">

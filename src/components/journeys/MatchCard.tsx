@@ -57,7 +57,7 @@ function TeamRow({
     >
       <div className="flex min-w-0 items-center gap-3">
         <p
-          className={`truncate text-sm ${
+          className={`truncate text-[17px] ${
             isWinner
               ? "font-semibold text-primary-800"
               : "font-medium text-neutral-700"

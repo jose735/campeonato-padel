@@ -16,7 +16,7 @@ export default function Card({ title, description, children, className }: CardPr
           {description && <p className="mt-0.5 text-sm text-neutral-500">{description}</p>}
         </div>
       )}
-      <div className="p-5 sm:p-6">{children}</div>
+      <div className="px-2 py-5 sm:p-4">{children}</div>
     </div>
   );
 }

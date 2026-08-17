@@ -13,6 +13,7 @@ import { can } from "@/lib/permissions";
 
 import RoundSection from "@/components/journeys/RoundSection";
 import JourneyStandings from "@/components/journeys/JourneyStandings";
+import AssignFieldsModal from "@/components/journeys/AssignFieldsModal";
 import Button from "@/components/ui/Button";
 
 import { calculateStandings } from "@/lib/standings";
@@ -41,6 +42,8 @@ export default function JourneyDetailPage() {
   const [isFinishing, setIsFinishing] = useState(false);
   const [isReopening, setIsReopening] = useState(false);
   const [isImageOpen, setIsImageOpen] = useState(false);
+  const [isFieldsModalOpen, setIsFieldsModalOpen] = useState(false);
+  const [fieldsSnapshot, setFieldsSnapshot] = useState<number[]>([]);
 
   useEffect(() => {
     fetchJourneys();
@@ -83,6 +86,43 @@ export default function JourneyDetailPage() {
     () => calculateStandings(matches, players),
     [matches, players],
   );
+
+  const handleOpenFieldsModal = () => {
+    const fields = new Set(
+      matches.map((m) => m.fieldNumber).filter((f): f is number => f !== null),
+    );
+
+    setFieldsSnapshot(Array.from(fields).sort((a, b) => a - b));
+    setIsFieldsModalOpen(true);
+  };
+
+  const handleSaveFields = async (mapping: Record<number, number>) => {
+    const updates = matches.filter(
+      (match): match is typeof match & { fieldNumber: number } =>
+        match.fieldNumber !== null && mapping[match.fieldNumber] !== undefined,
+    );
+
+    await Promise.all(
+      updates.map((match) => {
+        const payload: CreateJourneyMatchInput = {
+          journeyId: match.journeyId,
+          round: match.round,
+          playerA1Id: match.playerA1Id,
+          playerA2Id: match.playerA2Id,
+          playerB1Id: match.playerB1Id,
+          playerB2Id: match.playerB2Id,
+          scoreA: match.scoreA,
+          scoreB: match.scoreB,
+          pointsObtained: match.pointsObtained,
+          fieldNumber: mapping[match.fieldNumber],
+        };
+
+        return updateMatch(match.id, payload);
+      }),
+    );
+
+    await fetchMatchesByJourneyId(journeyId);
+  };
 
   const handleSaveRound = async (
     roundMatches: {
@@ -194,7 +234,8 @@ export default function JourneyDetailPage() {
               </h2>
 
               <p className="mt-1 text-neutral-500">
-                {journey.journeyDate} · {journey.fieldsQuantity} canchas · {journey.scoreLimit} pts · {matches.length} partidos
+                {journey.journeyDate} · {journey.fieldsQuantity} canchas ·{" "}
+                {journey.scoreLimit} pts · {matches.length} partidos
               </p>
             </div>
           </div>
@@ -220,6 +261,16 @@ export default function JourneyDetailPage() {
                 isLoading={isReopening}
               >
                 Reabrir jornada
+              </Button>
+            )}
+
+            {canEdit && matches.length > 0 && (
+              <Button
+                variant="secondary"
+                onClick={handleOpenFieldsModal}
+                disabled={isLocked}
+              >
+                Asignar canchas
               </Button>
             )}
 
@@ -291,6 +342,14 @@ export default function JourneyDetailPage() {
             />
           </div>
         </div>
+      )}
+
+      {isFieldsModalOpen && (
+        <AssignFieldsModal
+          currentFields={fieldsSnapshot}
+          onClose={() => setIsFieldsModalOpen(false)}
+          onSave={handleSaveFields}
+        />
       )}
     </div>
   );

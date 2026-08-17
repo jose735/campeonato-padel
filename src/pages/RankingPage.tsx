@@ -62,7 +62,7 @@ export default function RankingPage() {
   );
   const [matches, setMatches] = useState<JourneyMatch[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [mode, setMode] = useState<RankingMode>("general");
+  const [mode, setMode] = useState<RankingMode>("ponderada");
 
   useEffect(() => {
     fetchTournaments();
@@ -146,8 +146,8 @@ export default function RankingPage() {
               value={mode}
               onChange={setMode}
               options={[
-                { label: "General", value: "general" },
                 { label: "Ponderada", value: "ponderada" },
+                { label: "General", value: "general" },
               ]}
             />
           )}
@@ -167,6 +167,7 @@ export default function RankingPage() {
           <JourneyStandings
             standings={standings}
             showDecimals={mode === "ponderada"}
+            variant={mode === "ponderada" ? "ponderada" : "general"}
           />
         </Card>
       )}

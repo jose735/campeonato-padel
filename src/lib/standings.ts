@@ -9,6 +9,7 @@ export type StandingRow = {
   draws: number;
   losses: number;
   matchesPlayed: number;
+  journeysPlayed: number;
   pointsFor: number; // Puntos a favor
   pointsAgainst: number; // Puntos en contra
   difference: number; // PF - PC
@@ -35,6 +36,7 @@ export function calculateStandings(
       draws: number;
       losses: number;
       matchesPlayed: number;
+      journeys: Set<number>;
       pointsFor: number;
       pointsAgainst: number;
     }
@@ -48,6 +50,7 @@ export function calculateStandings(
         draws: 0,
         losses: 0,
         matchesPlayed: 0,
+        journeys: new Set<number>(),
         pointsFor: 0,
         pointsAgainst: 0,
       });
@@ -69,7 +72,9 @@ export function calculateStandings(
     const all = [...teamA, ...teamB];
 
     all.forEach((id) => {
-      ensure(id).matchesPlayed += 1;
+      const row = ensure(id);
+      row.matchesPlayed += 1;
+      row.journeys.add(match.journeyId);
     });
 
     // PF / PC en todos los partidos
@@ -137,6 +142,7 @@ export function calculateStandings(
       draws: data.draws,
       losses: data.losses,
       matchesPlayed: data.matchesPlayed,
+      journeysPlayed: data.journeys.size,
       pointsFor: data.pointsFor,
       pointsAgainst: data.pointsAgainst,
       difference: data.pointsFor - data.pointsAgainst,
