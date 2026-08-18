@@ -13,6 +13,7 @@ type JourneyMatchStore = {
   matches: JourneyMatch[];
   isLoading: boolean;
   journeyIdsWithMatches: number[];
+  currentJourneyId: number | null;
   fetchMatchesByJourneyId: (journeyId: number) => Promise<void>;
   createMatch: (match: CreateJourneyMatchInput) => Promise<void>;
   updateMatch: (id: number, match: CreateJourneyMatchInput) => Promise<void>;
@@ -30,8 +31,10 @@ export const useJourneyMatchStore = create<JourneyMatchStore>((set) => ({
   matches: [],
   isLoading: false,
   journeyIdsWithMatches: [],
+  currentJourneyId: null,
+
   fetchMatchesByJourneyId: async (journeyId) => {
-    set({ isLoading: true });
+    set({ isLoading: true, currentJourneyId: journeyId });
     try {
       const matches = await getMatchesByJourneyId(journeyId);
       set({ matches });

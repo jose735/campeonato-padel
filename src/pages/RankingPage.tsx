@@ -9,6 +9,7 @@ import SelectField from "@/components/ui/SelectField";
 import SegmentedControl from "@/components/ui/SegmentedControl";
 import Card from "@/components/ui/Card";
 import type { JourneyMatch } from "@/types";
+import { supabase } from "@/lib/supabase";
 
 type RankingMode = "general" | "ponderada";
 
@@ -21,7 +22,6 @@ function buildWeightedStandings(standings: StandingRow[]): StandingRow[] {
       difference: row.difference / row.matchesPlayed,
     }));
 
-  // Mismo orden de desempate que la tabla general
   weighted.sort((a, b) => {
     if (b.points !== a.points) return b.points - a.points;
     if (b.difference !== a.difference) return b.difference - a.difference;
@@ -30,7 +30,6 @@ function buildWeightedStandings(standings: StandingRow[]): StandingRow[] {
     return a.playerName.localeCompare(b.playerName, "es");
   });
 
-  // Recalcular posiciones (empates con mismos criterios)
   let position = 1;
 
   return weighted.map((row, index) => {
@@ -73,9 +72,12 @@ export default function RankingPage() {
     if (selectedTournamentId === "") return;
 
     let cancelled = false;
+    let isFirstLoad = true;
 
     const load = async () => {
-      setIsLoading(true);
+      if (isFirstLoad) {
+        setIsLoading(true);
+      }
       try {
         const data = await getMatchesByTournamentId(selectedTournamentId);
         if (!cancelled) setMatches(data);
@@ -83,13 +85,36 @@ export default function RankingPage() {
         console.error(error);
         if (!cancelled) setMatches([]);
       } finally {
-        if (!cancelled) setIsLoading(false);
+        if (!cancelled && isFirstLoad) {
+          setIsLoading(false);
+          isFirstLoad = false;
+        }
       }
     };
 
-    load();
+    void load();
+
+    const channel = supabase
+      .channel(`ranking-${selectedTournamentId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "journeys_matches" },
+        () => {
+          void load();
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "journeys" },
+        () => {
+          void load();
+        },
+      )
+      .subscribe();
+
     return () => {
       cancelled = true;
+      void supabase.removeChannel(channel);
     };
   }, [selectedTournamentId]);
 
@@ -161,9 +186,7 @@ export default function RankingPage() {
       ) : isLoading ? (
         <p className="text-sm text-neutral-500">Cargando ranking...</p>
       ) : (
-        <Card
-          title={mode === "general" ? "Tabla general" : "Tabla ponderada"}
-        >
+        <Card title={mode === "general" ? "Tabla general" : "Tabla ponderada"}>
           <JourneyStandings
             standings={standings}
             showDecimals={mode === "ponderada"}

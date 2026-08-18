@@ -15,6 +15,7 @@ import JourneyDetailPage from "@/pages/JourneyDetailPage";
 import RankingPage from "@/pages/RankingPage";
 import { RequireAuth } from "@/routes/ProtectedRoute";
 import { useAuthStore } from "@/store/auth-store";
+import { startRealtimeSync, stopRealtimeSync } from "@/lib/realtimeSync";
 
 const router = createBrowserRouter([
   {
@@ -43,10 +44,20 @@ const router = createBrowserRouter([
 
 export const AppRouter = () => {
   const hydrate = useAuthStore((s) => s.hydrate);
+  const role = useAuthStore((s) => s.role);
 
   useEffect(() => {
     hydrate();
   }, [hydrate]);
+
+  useEffect(() => {
+    if (!role) {
+      stopRealtimeSync();
+      return;
+    }
+    startRealtimeSync();
+    return () => stopRealtimeSync();
+  }, [role]);
 
   return <RouterProvider router={router} />;
 };

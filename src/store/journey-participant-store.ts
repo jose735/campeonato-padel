@@ -10,6 +10,7 @@ import {
 type JourneyParticipantStore = {
   participants: JourneyParticipant[];
   isLoading: boolean;
+  currentJourneyId: number | null;
   fetchParticipantsByJourneyId: (journeyId: number) => Promise<void>;
   createParticipant: (participant: CreateJourneyParticipantInput) => Promise<void>;
   deleteParticipant: (participantId: number) => Promise<void>;
@@ -21,9 +22,10 @@ type JourneyParticipantStore = {
 export const useJourneyParticipantStore = create<JourneyParticipantStore>((set) => ({
   participants: [],
   isLoading: false,
+  currentJourneyId: null,
 
   fetchParticipantsByJourneyId: async (journeyId) => {
-    set({ isLoading: true });
+    set({ isLoading: true, currentJourneyId: journeyId });
     try {
       const participants = await getParticipantsByJourneyId(journeyId);
       set({ participants });
@@ -69,13 +71,13 @@ export const useJourneyParticipantStore = create<JourneyParticipantStore>((set) 
   },
 
   createParticipantsBulk: async (participantsData) => {
-  try {
-    const newParticipants = await createJourneyParticipantsBulk(participantsData);
-    set((state) => ({ participants: [...state.participants, ...newParticipants] }));
-    return newParticipants;
-  } catch (error) {
-    console.error(error);
-    throw error;
-  }
-},
+    try {
+      const newParticipants = await createJourneyParticipantsBulk(participantsData);
+      set((state) => ({ participants: [...state.participants, ...newParticipants] }));
+      return newParticipants;
+    } catch (error) {
+      console.error(error);
+      throw error;
+    }
+  },
 }));
