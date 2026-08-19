@@ -37,7 +37,7 @@ export default function JourneyForm({
     defaultValues: {
       journeyDate: getTodayDateString(),
       fieldsQuantity: 2,
-      scoreLimit: 16,
+      scoreLimit: 24,
       maxPlayers: 8,
     },
   });
@@ -50,7 +50,7 @@ export default function JourneyForm({
   const maxPlayers = fieldsQuantity === 3 ? 12 : 8;
 
   useEffect(() => {
-    setValue("scoreLimit", fieldsQuantity === 3 ? 24 : 16);
+    setValue("scoreLimit", fieldsQuantity === 3 ? 16 : 24);
   }, [fieldsQuantity, setValue]);
 
   const onValid = async (data: CreateJourneyFormData) => {
@@ -65,7 +65,7 @@ export default function JourneyForm({
       reset({
         journeyDate: getTodayDateString(),
         fieldsQuantity: 2,
-        scoreLimit: 16,
+        scoreLimit: 24,
         maxPlayers: 8,
         tournamentId: undefined,
       });
