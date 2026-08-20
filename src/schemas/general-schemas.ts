@@ -17,23 +17,20 @@ export const createTournamentSchema = z.object({
 export type CreateTournamentFormData = z.infer<typeof createTournamentSchema>;
 
 export const createJourneySchema = z.object({
-  tournamentId: z.number({ message: 'Selecciona un torneo' }),
-  journeyDate: z.string().min(1, 'La fecha es requerida'),
-  fieldsQuantity: z.coerce
-    .number()
-    .refine((v) => v === 2 || v === 3, {
-      message: 'Seleccioná 2 o 3 canchas',
-    }),
+  tournamentId: z.number({ message: "Selecciona un torneo" }),
+  journeyDate: z.string().min(1, "La fecha es requerida"),
+  fieldsQuantity: z.coerce.number().refine((v) => v === 2 || v === 3, {
+    message: "Seleccioná 2 o 3 canchas",
+  }),
   scoreLimit: z.coerce
     .number()
     .refine((v) => v === 16 || v === 24 || v === 32, {
-      message: 'Seleccioná 16, 24 o 32 puntos',
+      message: "Seleccioná 16, 24 o 32 puntos",
     }),
-  maxPlayers: z.coerce
-    .number()
-    .refine((v) => v === 8 || v === 12, {
-      message: 'Seleccioná 8 o 12 jugadores',
-    }),
+  maxPlayers: z.coerce.number().refine((v) => v === 8 || v === 12, {
+    message: "Seleccioná 8 o 12 jugadores",
+  }),
+  journeyMatchSort: z.number().nullable(),
 });
 
 export type CreateJourneyFormData = z.infer<typeof createJourneySchema>;

@@ -1,3 +1,2 @@
 Cambios puntuales:
 
-- Implementar Realtime a todas las tablas

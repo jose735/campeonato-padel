@@ -55,6 +55,24 @@ export const useJourneyStore = create<JourneyStore>((set) => ({
 
   createJourney: async (journeyData) => {
     try {
+      const journeySameDay = useJourneyStore
+        .getState()
+        .journeys.findLast((j) => j.journeyDate === journeyData.journeyDate);
+
+      if (journeySameDay) {
+        const consecutive = journeySameDay.journeyMatchSort;
+        if (consecutive) {
+          const newConsecutive = consecutive + 1;
+          journeyData.journeyMatchSort = newConsecutive;
+        } else {
+          journeySameDay.journeyMatchSort = 1;
+          journeyData.journeyMatchSort = 2;
+        }
+
+        const updated = await updateJourney(journeySameDay.id, journeySameDay);
+        useJourneyStore.getState().editJourney(updated);
+      }
+
       const newJourney = await createJourney(journeyData);
       useJourneyStore.getState().addJourney(newJourney);
     } catch (error) {

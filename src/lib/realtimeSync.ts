@@ -48,6 +48,7 @@ function mapJourney(record: JourneyRecord): Journey {
     scoreLimit: record.score_limit,
     maxPlayers: record.max_players,
     status: record.status ?? "open",
+    journeyMatchSort: record.journey_match_sort,
     createdAt: record.created_at,
   };
 }

@@ -39,6 +39,7 @@ export default function JourneyForm({
       fieldsQuantity: 2,
       scoreLimit: 24,
       maxPlayers: 8,
+      journeyMatchSort: null,
     },
   });
 
@@ -55,7 +56,6 @@ export default function JourneyForm({
 
   const onValid = async (data: CreateJourneyFormData) => {
     setIsSubmitting(true);
-
     try {
       await onSubmit({
         ...data,
@@ -68,6 +68,7 @@ export default function JourneyForm({
         scoreLimit: 24,
         maxPlayers: 8,
         tournamentId: undefined,
+        journeyMatchSort: null,
       });
     } finally {
       setIsSubmitting(false);

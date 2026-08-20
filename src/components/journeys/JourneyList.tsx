@@ -39,11 +39,11 @@ export default function JourneyList({
   pageSize = 10,
 }: JourneyListProps) {
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] =
-    useState<StatusFilter>("all");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
 
-  const [deletingJourneyId, setDeletingJourneyId] =
-    useState<number | null>(null);
+  const [deletingJourneyId, setDeletingJourneyId] = useState<number | null>(
+    null,
+  );
 
   const role = useAuthStore((state) => state.role);
   const canManagePlayers = can.manageJourneyPlayers(role);
@@ -72,13 +72,10 @@ export default function JourneyList({
     });
   }, [journeys, tournaments, search, statusFilter]);
 
-  const {
-    page,
-    setPage,
-    totalPages,
-    pageItems,
-    totalItems,
-  } = usePagination(filteredJourneys, pageSize);
+  const { page, setPage, totalPages, pageItems, totalItems } = usePagination(
+    filteredJourneys,
+    pageSize,
+  );
 
   const handleSearchChange = (value: string) => {
     setSearch(value);
@@ -143,9 +140,7 @@ export default function JourneyList({
       ) : (
         <ul className="flex flex-col gap-2">
           {pageItems.map((journey) => {
-            const hasMatches = journeyIdsWithMatches.includes(
-              journey.id,
-            );
+            const hasMatches = journeyIdsWithMatches.includes(journey.id);
 
             const isFinished = journey.status === "finished";
             const isDeleting = deletingJourneyId === journey.id;
@@ -158,7 +153,8 @@ export default function JourneyList({
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="font-medium text-neutral-800">
-                      {getTournamentName(journey.tournamentId)}
+                      {getTournamentName(journey.tournamentId)}{" "}
+                      {journey.journeyMatchSort ?? ""}
                     </p>
 
                     {isFinished && (
@@ -170,8 +166,7 @@ export default function JourneyList({
 
                   <p className="mt-0.5 flex items-center gap-1.5 text-sm text-neutral-500">
                     <Calendar size={14} />
-                    {journey.journeyDate} ·{" "}
-                    {journey.fieldsQuantity} canchas · {" "}
+                    {journey.journeyDate} · {journey.fieldsQuantity} canchas ·{" "}
                     {journey.scoreLimit} pts
                   </p>
                 </div>
@@ -181,9 +176,7 @@ export default function JourneyList({
                     <Button
                       variant="secondary"
                       icon={Eye}
-                      onClick={() =>
-                        onViewMatches(journey.id)
-                      }
+                      onClick={() => onViewMatches(journey.id)}
                       disabled={isDeleting}
                     >
                       Ver partidos
@@ -193,9 +186,7 @@ export default function JourneyList({
                       <Button
                         variant="secondary"
                         icon={Users}
-                        onClick={() =>
-                          onManagePlayers(journey.id)
-                        }
+                        onClick={() => onManagePlayers(journey.id)}
                         disabled={isDeleting}
                       >
                         Agregar jugadores
@@ -207,15 +198,11 @@ export default function JourneyList({
                     <Button
                       variant="danger"
                       icon={isDeleting ? Loader2 : Trash2}
-                      onClick={() =>
-                        handleDeleteJourney(journey)
-                      }
+                      onClick={() => handleDeleteJourney(journey)}
                       disabled={isDeleting}
                       className={isDeleting ? "[&_svg]:animate-spin" : ""}
                     >
-                      {isDeleting
-                        ? "Eliminando..."
-                        : "Eliminar"}
+                      {isDeleting ? "Eliminando..." : "Eliminar"}
                     </Button>
                   )}
                 </div>
