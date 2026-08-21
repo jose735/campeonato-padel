@@ -142,3 +142,47 @@ export async function deleteJourneyMatch(id: number): Promise<void> {
   const { error } = await supabase.from(TABLE).delete().eq('id', id);
   if (error) throw error;
 }
+
+/**
+ * Reemplaza un player_id por otro en todas las columnas de jugadores
+ * de todos los partidos de una jornada.
+ * No toca scores ni field_number.
+ */
+export async function replacePlayerInJourneyMatches(
+  journeyId: number,
+  oldPlayerId: number,
+  newPlayerId: number,
+): Promise<void> {
+  const columns = [
+    'player_a1_id',
+    'player_a2_id',
+    'player_b1_id',
+    'player_b2_id',
+  ] as const;
+
+  for (const column of columns) {
+    const { error } = await supabase
+      .from(TABLE)
+      .update({ [column]: newPlayerId })
+      .eq('journey_id', journeyId)
+      .eq(column, oldPlayerId);
+
+    if (error) throw error;
+  }
+}
+
+/**
+ * Indica si la jornada ya tiene al menos un marcador cargado
+ * (score_a, score_b o points_obtained distintos de 0).
+ */
+export async function journeyHasScores(journeyId: number): Promise<boolean> {
+  const { data, error } = await supabase
+    .from(TABLE)
+    .select('id')
+    .eq('journey_id', journeyId)
+    .or('score_a.gt.0,score_b.gt.0,points_obtained.gt.0')
+    .limit(1);
+
+  if (error) throw error;
+  return (data?.length ?? 0) > 0;
+}

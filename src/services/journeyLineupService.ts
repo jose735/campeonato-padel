@@ -1,5 +1,13 @@
 import { supabase } from '@/lib/supabase';
 import type { GeneratedMatch } from '@/lib/roundRobinGenerator';
+import {
+  getParticipantsByJourneyId,
+  updateParticipantPlayerId,
+} from '@/services/journeyParticipantService';
+import {
+  replacePlayerInJourneyMatches,
+  journeyHasScores,
+} from '@/services/journeyMatchService';
 
 type MatchWithCourt = GeneratedMatch & { fieldNumber: number };
 
@@ -53,4 +61,45 @@ export async function createJourneyLineup(
   });
 
   if (error) throw error;
+}
+
+/**
+ * Reemplaza un jugador en una jornada ya generada.
+ * - El nuevo jugador hereda el seed del jugador reemplazado.
+ * - Se actualizan todos los partidos (las 4 columnas de jugadores).
+ * - No se regeneran seeds ni partidos.
+ */
+export async function replacePlayerInJourney(
+  journeyId: number,
+  oldPlayerId: number,
+  newPlayerId: number,
+): Promise<void> {
+  if (oldPlayerId === newPlayerId) {
+    throw new Error('El jugador de reemplazo debe ser distinto al actual.');
+  }
+
+  const hasScores = await journeyHasScores(journeyId);
+  if (hasScores) {
+    throw new Error(
+      'No se puede reemplazar un jugador porque la jornada ya tiene marcadores cargados.',
+    );
+  }
+
+  const participants = await getParticipantsByJourneyId(journeyId);
+  const oldParticipant = participants.find((p) => p.playerId === oldPlayerId);
+
+  if (!oldParticipant) {
+    throw new Error('El jugador a reemplazar no pertenece a esta jornada.');
+  }
+
+  const alreadyInJourney = participants.some((p) => p.playerId === newPlayerId);
+  if (alreadyInJourney) {
+    throw new Error('El jugador de reemplazo ya está inscrito en esta jornada.');
+  }
+
+  // 1) Actualizar el participante (mantiene el seed)
+  await updateParticipantPlayerId(oldParticipant.id, newPlayerId);
+
+  // 2) Reemplazar el player_id en todos los partidos de la jornada
+  await replacePlayerInJourneyMatches(journeyId, oldPlayerId, newPlayerId);
 }

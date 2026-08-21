@@ -69,3 +69,22 @@ export async function deleteJourneyParticipant(id: number): Promise<void> {
   const { error } = await supabase.from(TABLE).delete().eq('id', id);
   if (error) throw error;
 }
+
+/**
+ * Cambia el player_id de un participante manteniendo el mismo seed.
+ * Usado para reemplazar un jugador ausente sin regenerar la jornada.
+ */
+export async function updateParticipantPlayerId(
+  participantId: number,
+  newPlayerId: number,
+): Promise<JourneyParticipant> {
+  const { data, error } = await supabase
+    .from(TABLE)
+    .update({ player_id: newPlayerId })
+    .eq('id', participantId)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return mapRecordToParticipant(data as JourneyParticipantRecord);
+}

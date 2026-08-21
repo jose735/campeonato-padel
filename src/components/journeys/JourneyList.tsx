@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Users, Eye, Calendar, Trash2, Loader2 } from "lucide-react";
+import { Users, Eye, Calendar, Trash2, Loader2, Pencil } from "lucide-react";
 import type { Journey, Tournament } from "@/types";
 import Button from "@/components/ui/Button";
 import Pagination from "@/components/ui/Pagination";
@@ -15,6 +15,7 @@ interface JourneyListProps {
   tournaments: Tournament[];
   journeyIdsWithMatches: number[];
   onManagePlayers: (journeyId: number) => void;
+  onReplacePlayer: (journeyId: number) => void;
   onViewMatches: (journeyId: number) => void;
   onJourneyDeleted: () => Promise<void>;
   pageSize?: number;
@@ -34,6 +35,7 @@ export default function JourneyList({
   tournaments,
   journeyIdsWithMatches,
   onManagePlayers,
+  onReplacePlayer,
   onViewMatches,
   onJourneyDeleted,
   pageSize = 10,
@@ -47,6 +49,7 @@ export default function JourneyList({
 
   const role = useAuthStore((state) => state.role);
   const canManagePlayers = can.manageJourneyPlayers(role);
+  const canReplacePlayer = can.replaceJourneyPlayer(role);
   const canDelete = can.deleteJourney(role);
 
   const getTournamentName = (tournamentId: number) =>
@@ -173,14 +176,29 @@ export default function JourneyList({
 
                 <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
                   {hasMatches ? (
-                    <Button
-                      variant="secondary"
-                      icon={Eye}
-                      onClick={() => onViewMatches(journey.id)}
-                      disabled={isDeleting}
-                    >
-                      Ver partidos
-                    </Button>
+                    <>
+                      <Button
+                        variant="secondary"
+                        icon={Eye}
+                        onClick={() => onViewMatches(journey.id)}
+                        disabled={isDeleting}
+                      >
+                        Ver partidos
+                      </Button>
+
+                      {canReplacePlayer && !isFinished && (
+                        <button
+                          type="button"
+                          onClick={() => onReplacePlayer(journey.id)}
+                          disabled={isDeleting}
+                          aria-label="Reemplazar jugador"
+                          title="Reemplazar jugador"
+                          className="inline-flex items-center justify-center rounded-lg border border-neutral-300 bg-white p-2.5 text-neutral-700 transition-colors hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          <Pencil size={16} />
+                        </button>
+                      )}
+                    </>
                   ) : (
                     canManagePlayers && (
                       <Button

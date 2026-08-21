@@ -34,6 +34,7 @@ export default function JourneysPage() {
 
   const [activeJourneyId, setActiveJourneyId] =
     useState<number | null>(null);
+  const [modalMode, setModalMode] = useState<"create" | "replace">("create");
 
   const [isFormOpen, setIsFormOpen] = useState(false);
 
@@ -134,7 +135,14 @@ export default function JourneysPage() {
             journeys={sortedJourneys}
             tournaments={tournaments}
             journeyIdsWithMatches={journeyIdsWithMatches}
-            onManagePlayers={setActiveJourneyId}
+            onManagePlayers={(id) => {
+              setModalMode("create");
+              setActiveJourneyId(id);
+            }}
+            onReplacePlayer={(id) => {
+              setModalMode("replace");
+              setActiveJourneyId(id);
+            }}
             onViewMatches={(id) =>
               navigate(`/jornadas/${id}`)
             }
@@ -150,7 +158,7 @@ export default function JourneysPage() {
 
       {activeJourneyId !== null && (
         <PlayerSelectionModal
-          key={activeJourneyId}
+          key={`${activeJourneyId}-${modalMode}`}
           journeyId={activeJourneyId}
           maxPlayers={
             journeys.find(
@@ -162,6 +170,7 @@ export default function JourneysPage() {
               (journey) => journey.id === activeJourneyId,
             )?.fieldsQuantity ?? 2
           }
+          mode={modalMode}
           onClose={() => setActiveJourneyId(null)}
           onSuccess={() =>
             fetchJourneyIdsWithMatches()

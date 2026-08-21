@@ -23,4 +23,6 @@ export const can = {
   deleteJourney: (role: UserRole | null) => role === 'admin',
 
   reopenJourney: (role: UserRole | null) => role === 'admin',
+
+  replaceJourneyPlayer: (role: UserRole | null) => role === 'admin',
 } as const;
