@@ -166,25 +166,25 @@ export default function MatchCard({
       {/* Header */}
       <div className="flex items-center justify-between border-b border-neutral-100 px-4 py-2">
         {match.fieldNumber != null && (
-          <span className="rounded-full bg-primary-50 px-2.5 py-0.5 text-xs font-medium text-primary-700">
+          <span className="rounded-full bg-primary-50 px-2.5 py-0.5 text-[15px] font-medium text-primary-700">
             Cancha #{match.fieldNumber}
           </span>
         )}
 
         {isLocked ? (
-          <span className="rounded-full bg-neutral-100 px-2.5 py-0.5 text-xs font-medium text-neutral-500">
+          <span className="rounded-full bg-neutral-100 px-2.5 py-0.5 text-[15px] font-medium text-neutral-500">
             Finalizado
           </span>
         ) : isEditing ? (
-          <span className="rounded-full bg-warning-100 px-2.5 py-0.5 text-xs font-medium text-warning-700">
+          <span className="rounded-full bg-warning-100 px-2.5 py-0.5 text-[15px] font-medium text-warning-700">
             Editando
           </span>
         ) : registered ? (
-          <span className="rounded-full bg-success-100 px-2.5 py-0.5 text-xs font-medium text-success-700">
+          <span className="rounded-full bg-success-100 px-2.5 py-0.5 text-[15px] font-medium text-success-700">
             Registrado
           </span>
         ) : (
-          <span className="rounded-full bg-warning-100 px-2.5 py-0.5 text-xs font-medium text-warning-700">
+          <span className="rounded-full bg-warning-100 px-2.5 py-0.5 text-[15px] font-medium text-warning-700">
             Pendiente
           </span>
         )}

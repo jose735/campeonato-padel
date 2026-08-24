@@ -166,7 +166,7 @@ export default function RoundSection({
         </span>
 
         <div className="min-w-0">
-          <h3 className="text-sm font-semibold text-neutral-800">
+          <h3 className="text-[15px] font-semibold text-neutral-800">
             Ronda {round}
           </h3>
 
@@ -178,7 +178,7 @@ export default function RoundSection({
 
         {/* Estado */}
         <span
-          className={`ml-auto shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ${
+          className={`ml-auto shrink-0 rounded-full px-2.5 py-1 text-[15px] font-medium ${
             allPlayed
               ? "bg-success-100 text-success-700"
               : playedCount > 0

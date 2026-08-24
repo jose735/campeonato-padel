@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Flag, RotateCcw, X } from "lucide-react";
 
-import copaKolariImg from "@/assets/copa-kolari-imagen.png";
+import copaKolariImg from "@/assets/copa-kolari-imagen-v2.png";
 
 import { useJourneyStore } from "@/store/journey-store";
 import { useJourneyMatchStore } from "@/store/journey-match-store";
