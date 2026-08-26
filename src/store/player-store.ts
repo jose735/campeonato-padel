@@ -6,8 +6,8 @@ type PlayerStore = {
   players: Player[];
   isLoading: boolean;
   fetchPlayers: () => Promise<void>;
-  createPlayer: (player: CreatePlayerInput) => Promise<void>;
-  updatePlayer: (id: number, player: CreatePlayerInput) => Promise<void>;
+  createPlayer: (player: CreatePlayerInput) => Promise<Player>;
+  updatePlayer: (id: number, player: CreatePlayerInput) => Promise<Player>;
   deletePlayer: (playerId: number) => Promise<void>;
   addPlayer: (player: Player) => void;
   editPlayer: (player: Player) => void;
@@ -31,21 +31,15 @@ export const usePlayerStore = create<PlayerStore>((set) => ({
   },
 
   createPlayer: async (playerData) => {
-    try {
-      const newPlayer = await createPlayer(playerData);
-      usePlayerStore.getState().addPlayer(newPlayer);
-    } catch (error) {
-      console.error(error);
-    }
+    const newPlayer = await createPlayer(playerData);
+    usePlayerStore.getState().addPlayer(newPlayer);
+    return newPlayer;
   },
 
   updatePlayer: async (id, playerData) => {
-    try {
-      const updated = await updatePlayer(id, playerData);
-      usePlayerStore.getState().editPlayer(updated);
-    } catch (error) {
-      console.error(error);
-    }
+    const updated = await updatePlayer(id, playerData);
+    usePlayerStore.getState().editPlayer(updated);
+    return updated;
   },
 
   deletePlayer: async (playerId) => {

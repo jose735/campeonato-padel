@@ -1,9 +1,12 @@
 import { useMemo, useState } from 'react';
-import { Pencil, Trash2 } from 'lucide-react';
+import { Pencil, Trash2, BarChart3, History } from 'lucide-react';
 import type { Player } from '@/types';
 import Button from '@/components/ui/Button';
 import Pagination from '@/components/ui/Pagination';
 import SearchInput from '@/components/ui/SearchInput';
+import PlayerAvatar from '@/components/players/PlayerAvatar';
+import PlayerStatsModal from '@/components/players/PlayerStatsModal';
+import PlayerHistoryModal from '@/components/players/PlayerHistoryModal';
 import { usePagination } from '@/hooks/usePagination';
 
 interface PlayerListProps {
@@ -27,6 +30,8 @@ export default function PlayerList({
   pageSize = 7,
 }: PlayerListProps) {
   const [search, setSearch] = useState('');
+  const [statsPlayer, setStatsPlayer] = useState<Player | null>(null);
+  const [historyPlayer, setHistoryPlayer] = useState<Player | null>(null);
 
   const filteredPlayers = useMemo(() => {
     const term = normalize(search.trim());
@@ -77,39 +82,62 @@ export default function PlayerList({
               key={player.id}
               className="flex items-center justify-between gap-3 rounded-lg border border-neutral-200 bg-neutral-50/60 px-4 py-3"
             >
-              <div className="min-w-0">
-                <p className="truncate font-medium text-neutral-800">
-                  {player.displayName}
-                </p>
-                {player.nickname && (
-                  <p className="truncate text-sm text-neutral-500">
-                    {player.firstName} {player.lastName}
+              <div className="flex min-w-0 items-center gap-3">
+                <PlayerAvatar player={player} size="md" enablePreview />
+                <div className="min-w-0">
+                  <p className="truncate font-medium text-neutral-800">
+                    {player.displayName}
                   </p>
-                )}
-              </div>
-
-              {(onEdit || onDelete) && (
-                <div className="flex shrink-0 flex-col">
-                  {onEdit && (
-                    <Button
-                      variant="secondary"
-                      icon={Pencil}
-                      onClick={() => onEdit(player)}
-                      aria-label={`Editar ${player.displayName}`}
-                      className="!px-2.5"
-                    />
-                  )}
-                  {onDelete && (
-                    <Button
-                      variant="danger"
-                      icon={Trash2}
-                      onClick={() => onDelete(player.id)}
-                      aria-label={`Eliminar ${player.displayName}`}
-                      className="!px-2.5"
-                    />
+                  {player.nickname && (
+                    <p className="truncate text-sm text-neutral-500">
+                      {player.firstName} {player.lastName}
+                    </p>
                   )}
                 </div>
-              )}
+              </div>
+
+              <div className="flex shrink-0 flex-col gap-0.5">
+                <div className="flex items-center justify-end gap-0.5">
+                  <Button
+                    variant="ghost"
+                    icon={BarChart3}
+                    onClick={() => setStatsPlayer(player)}
+                    aria-label={`Estadísticas de ${player.displayName}`}
+                    className="px-2.5!"
+                    title="Estadísticas"
+                  />
+                  <Button
+                    variant="ghost"
+                    icon={History}
+                    onClick={() => setHistoryPlayer(player)}
+                    aria-label={`Historial de ${player.displayName}`}
+                    className="px-2.5!"
+                    title="Historial"
+                  />
+                </div>
+                {(onEdit || onDelete) && (
+                  <div className="flex items-center justify-end gap-0.5">
+                    {onEdit && (
+                      <Button
+                        variant="secondary"
+                        icon={Pencil}
+                        onClick={() => onEdit(player)}
+                        aria-label={`Editar ${player.displayName}`}
+                        className="px-2.5!"
+                      />
+                    )}
+                    {onDelete && (
+                      <Button
+                        variant="danger"
+                        icon={Trash2}
+                        onClick={() => onDelete(player.id)}
+                        aria-label={`Eliminar ${player.displayName}`}
+                        className="px-2.5!"
+                      />
+                    )}
+                  </div>
+                )}
+              </div>
             </li>
           ))}
         </ul>
@@ -122,6 +150,19 @@ export default function PlayerList({
         pageSize={pageSize}
         onPageChange={setPage}
       />
+
+      {statsPlayer && (
+        <PlayerStatsModal
+          player={statsPlayer}
+          onClose={() => setStatsPlayer(null)}
+        />
+      )}
+      {historyPlayer && (
+        <PlayerHistoryModal
+          player={historyPlayer}
+          onClose={() => setHistoryPlayer(null)}
+        />
+      )}
     </div>
   );
 }

@@ -4,6 +4,7 @@ export type Player = {
   lastName: string;
   nickname?: string;
   displayName: string;
+  photoUrl?: string;
   createdAt: string;
   updatedAt: string;
 };
@@ -13,6 +14,7 @@ export type PlayerRecord = {
   first_name: string;
   last_name: string;
   nickname: string | null;
+  photo_url: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -21,6 +23,7 @@ export type CreatePlayerInput = {
   firstName: string;
   lastName: string;
   nickname?: string;
+  photoUrl?: string | null;
 };
 
 export type Tournament = {

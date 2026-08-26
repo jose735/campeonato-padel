@@ -3,7 +3,7 @@ import { Trophy } from "lucide-react";
 import { useTournamentStore } from "@/store/tournament-store";
 import { usePlayerStore } from "@/store/player-store";
 import { getMatchesByTournamentId } from "@/services/journeyMatchService";
-import { calculateStandings, type StandingRow } from "@/lib/standings";
+import { calculateStandings, buildWeightedStandings } from "@/lib/standings";
 import JourneyStandings from "@/components/journeys/JourneyStandings";
 import SelectField from "@/components/ui/SelectField";
 import SegmentedControl from "@/components/ui/SegmentedControl";
@@ -13,44 +13,6 @@ import { supabase } from "@/lib/supabase";
 
 type RankingMode = "general" | "ponderada";
 
-function buildWeightedStandings(standings: StandingRow[]): StandingRow[] {
-  const weighted = standings
-    .filter((row) => row.matchesPlayed > 0)
-    .map((row) => ({
-      ...row,
-      points: row.points / row.matchesPlayed,
-      difference: row.difference / row.matchesPlayed,
-    }));
-
-  weighted.sort((a, b) => {
-    if (b.points !== a.points) return b.points - a.points;
-    if (b.difference !== a.difference) return b.difference - a.difference;
-    if (b.wins !== a.wins) return b.wins - a.wins;
-    if (b.draws !== a.draws) return b.draws - a.draws;
-    return a.playerName.localeCompare(b.playerName, "es");
-  });
-
-  let position = 1;
-
-  return weighted.map((row, index) => {
-    if (index === 0) {
-      return { ...row, position: 1 };
-    }
-
-    const previous = weighted[index - 1];
-    const sameRankingCriteria =
-      row.points === previous.points &&
-      row.difference === previous.difference &&
-      row.wins === previous.wins &&
-      row.draws === previous.draws;
-
-    if (!sameRankingCriteria) {
-      position = index + 1;
-    }
-
-    return { ...row, position };
-  });
-}
 
 export default function RankingPage() {
   const { tournaments, fetchTournaments } = useTournamentStore();
