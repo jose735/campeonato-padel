@@ -11,4 +11,40 @@ export default defineConfig({
       '@': path.resolve(import.meta.dirname, "./src"),
     },
   },
+  build: {
+    chunkSizeWarningLimit: 600,
+    rolldownOptions: {
+      output: {
+        codeSplitting: {
+          groups: [
+            {
+              name: 'react-vendor',
+              test: /node_modules[\\/](react|react-dom|scheduler)([\\/]|$)/,
+              priority: 30,
+            },
+            {
+              name: 'router',
+              test: /node_modules[\\/]react-router/,
+              priority: 25,
+            },
+            {
+              name: 'supabase',
+              test: /node_modules[\\/]@supabase/,
+              priority: 20,
+            },
+            {
+              name: 'forms',
+              test: /node_modules[\\/](react-hook-form|@hookform|zod)([\\/]|$)/,
+              priority: 15,
+            },
+            {
+              name: 'vendor',
+              test: /node_modules/,
+              priority: 10,
+            },
+          ],
+        },
+      },
+    },
+  },
 })

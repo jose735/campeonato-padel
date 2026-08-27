@@ -57,15 +57,13 @@ export async function getMatchesByPlayerId(playerId: number): Promise<JourneyMat
 }
 
 /**
- * Estadísticas ponderadas globales del jugador (todos los torneos).
- * Solo considera jornadas finalizadas, igual que el Ranking.
+ * Partidos del jugador solo en jornadas finalizadas (mismo criterio que Ranking).
  */
-export async function getPlayerWeightedStats(
+async function getFinishedMatchesByPlayerId(
   playerId: number,
-  players: Player[],
-): Promise<StandingRow | null> {
+): Promise<JourneyMatch[]> {
   const matches = await getMatchesByPlayerId(playerId);
-  if (matches.length === 0) return null;
+  if (matches.length === 0) return [];
 
   const journeyIds = [...new Set(matches.map((m) => m.journeyId))];
   const { data: journeys, error } = await supabase
@@ -81,7 +79,18 @@ export async function getPlayerWeightedStats(
       .map((j) => j.id as number),
   );
 
-  const finishedMatches = matches.filter((m) => finishedIds.has(m.journeyId));
+  return matches.filter((m) => finishedIds.has(m.journeyId));
+}
+
+/**
+ * Estadísticas ponderadas globales del jugador (todos los torneos).
+ * Solo considera jornadas finalizadas, igual que el Ranking.
+ */
+export async function getPlayerWeightedStats(
+  playerId: number,
+  players: Player[],
+): Promise<StandingRow | null> {
+  const finishedMatches = await getFinishedMatchesByPlayerId(playerId);
   if (finishedMatches.length === 0) return null;
 
   const standings = calculateStandings(finishedMatches, players);
@@ -139,6 +148,159 @@ function buildMatchView(match: JourneyMatch, playerId: number): PlayerMatchView 
     scoreOpp,
     outcome,
   };
+}
+
+type PairStatsAccumulator = {
+  points: number;
+  wins: number;
+  draws: number;
+  losses: number;
+  matchesPlayed: number;
+  journeys: Set<number>;
+  pointsFor: number;
+  pointsAgainst: number;
+};
+
+function emptyAccumulator(): PairStatsAccumulator {
+  return {
+    points: 0,
+    wins: 0,
+    draws: 0,
+    losses: 0,
+    matchesPlayed: 0,
+    journeys: new Set(),
+    pointsFor: 0,
+    pointsAgainst: 0,
+  };
+}
+
+function applyMatchToAccumulator(
+  acc: PairStatsAccumulator,
+  view: PlayerMatchView,
+): void {
+  if (view.outcome === 'pending') return;
+
+  acc.matchesPlayed += 1;
+  acc.journeys.add(view.match.journeyId);
+  acc.pointsFor += view.scoreOwn;
+  acc.pointsAgainst += view.scoreOpp;
+
+  if (view.outcome === 'win') {
+    acc.points += 2;
+    acc.wins += 1;
+  } else if (view.outcome === 'draw') {
+    acc.points += 1;
+    acc.draws += 1;
+  } else {
+    acc.losses += 1;
+  }
+}
+
+function accumulatorsToWeightedRows(
+  map: Map<number, PairStatsAccumulator>,
+  players: Player[],
+): StandingRow[] {
+  const playerName = (id: number) =>
+    players.find((p) => p.id === id)?.displayName ?? `Jugador #${id}`;
+
+  const rows: StandingRow[] = Array.from(map.entries())
+    .filter(([, data]) => data.matchesPlayed > 0)
+    .map(([otherId, data]) => {
+      const difference = data.pointsFor - data.pointsAgainst;
+      return {
+        playerId: otherId,
+        playerName: playerName(otherId),
+        position: 0,
+        points: data.points / data.matchesPlayed,
+        wins: data.wins,
+        draws: data.draws,
+        losses: data.losses,
+        matchesPlayed: data.matchesPlayed,
+        journeysPlayed: data.journeys.size,
+        pointsFor: data.pointsFor,
+        pointsAgainst: data.pointsAgainst,
+        difference: difference / data.matchesPlayed,
+      };
+    });
+
+  rows.sort((a, b) => {
+    if (b.points !== a.points) return b.points - a.points;
+    if (b.difference !== a.difference) return b.difference - a.difference;
+    if (b.wins !== a.wins) return b.wins - a.wins;
+    if (b.draws !== a.draws) return b.draws - a.draws;
+    return a.playerName.localeCompare(b.playerName, 'es');
+  });
+
+  let position = 1;
+  return rows.map((row, index) => {
+    if (index === 0) return { ...row, position: 1 };
+
+    const previous = rows[index - 1];
+    const same =
+      row.points === previous.points &&
+      row.difference === previous.difference &&
+      row.wins === previous.wins &&
+      row.draws === previous.draws;
+
+    if (!same) position = index + 1;
+    return { ...row, position };
+  });
+}
+
+/**
+ * Mini-ranking ponderado del jugador con cada pareja (jornadas finalizadas).
+ * Cada fila = stats del jugador seleccionado cuando jugó junto a ese partner.
+ */
+export async function getPlayerPartnerStats(
+  playerId: number,
+  players: Player[],
+): Promise<StandingRow[]> {
+  const finishedMatches = await getFinishedMatchesByPlayerId(playerId);
+  if (finishedMatches.length === 0) return [];
+
+  const byPartner = new Map<number, PairStatsAccumulator>();
+
+  for (const match of finishedMatches) {
+    const view = buildMatchView(match, playerId);
+    if (view.outcome === 'pending') continue;
+
+    const partnerId = view.partnerId;
+    if (!byPartner.has(partnerId)) {
+      byPartner.set(partnerId, emptyAccumulator());
+    }
+    applyMatchToAccumulator(byPartner.get(partnerId)!, view);
+  }
+
+  return accumulatorsToWeightedRows(byPartner, players);
+}
+
+/**
+ * Mini-ranking ponderado del jugador vs cada rival (jornadas finalizadas).
+ * Cada fila = stats del jugador seleccionado cuando enfrentó a ese rival.
+ * Un partido cuenta para ambos rivales del equipo contrario.
+ */
+export async function getPlayerRivalStats(
+  playerId: number,
+  players: Player[],
+): Promise<StandingRow[]> {
+  const finishedMatches = await getFinishedMatchesByPlayerId(playerId);
+  if (finishedMatches.length === 0) return [];
+
+  const byRival = new Map<number, PairStatsAccumulator>();
+
+  for (const match of finishedMatches) {
+    const view = buildMatchView(match, playerId);
+    if (view.outcome === 'pending') continue;
+
+    for (const rivalId of view.opponentIds) {
+      if (!byRival.has(rivalId)) {
+        byRival.set(rivalId, emptyAccumulator());
+      }
+      applyMatchToAccumulator(byRival.get(rivalId)!, view);
+    }
+  }
+
+  return accumulatorsToWeightedRows(byRival, players);
 }
 
 /**

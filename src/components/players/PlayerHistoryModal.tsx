@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { X, History, Loader2, Trophy } from 'lucide-react';
+import { X, History, Loader2, ArrowDownWideNarrow, ArrowUpWideNarrow } from 'lucide-react';
 import type { Player } from '@/types';
 import {
   getPlayerJourneyHistory,
@@ -38,14 +38,7 @@ function playerName(players: Player[], id: number): string {
   return players.find((p) => p.id === id)?.displayName ?? `Jugador #${id}`;
 }
 
-/** Colores de badge por torneo (cíclico). */
-const TOURNAMENT_BADGE = [
-  'bg-primary-100 text-primary-700',
-  'bg-accent-100 text-accent-700',
-  'bg-success-100 text-success-700',
-  'bg-warning-100 text-warning-700',
-  'bg-danger-100 text-danger-700',
-];
+type DateSortOrder = 'desc' | 'asc';
 
 export default function PlayerHistoryModal({
   player,
@@ -55,6 +48,7 @@ export default function PlayerHistoryModal({
   const [items, setItems] = useState<PlayerJourneyHistoryItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [dateSort, setDateSort] = useState<DateSortOrder>('desc');
 
   useEffect(() => {
     let cancelled = false;
@@ -88,42 +82,21 @@ export default function PlayerHistoryModal({
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose]);
 
-  const tournamentColorIndex = useMemo(() => {
-    const map = new Map<number, number>();
-    let i = 0;
-    for (const item of items) {
-      if (!map.has(item.tournamentId)) {
-        map.set(item.tournamentId, i % TOURNAMENT_BADGE.length);
-        i += 1;
-      }
-    }
-    return map;
-  }, [items]);
+  const sortedItems = useMemo(() => {
+    const copy = [...items];
+    copy.sort((a, b) => {
+      const da = a.journey.journeyDate;
+      const db = b.journey.journeyDate;
+      if (da === db) return a.journey.id - b.journey.id;
+      if (dateSort === 'desc') return db.localeCompare(da);
+      return da.localeCompare(db);
+    });
+    return copy;
+  }, [items, dateSort]);
 
-  /** Agrupar por torneo manteniendo orden de jornadas (ya vienen por fecha desc). */
-  const groupedByTournament = useMemo(() => {
-    const groups: {
-      tournamentId: number;
-      tournamentName: string;
-      journeys: PlayerJourneyHistoryItem[];
-    }[] = [];
-    const indexByTournament = new Map<number, number>();
-
-    for (const item of items) {
-      const existing = indexByTournament.get(item.tournamentId);
-      if (existing === undefined) {
-        indexByTournament.set(item.tournamentId, groups.length);
-        groups.push({
-          tournamentId: item.tournamentId,
-          tournamentName: item.tournamentName,
-          journeys: [item],
-        });
-      } else {
-        groups[existing].journeys.push(item);
-      }
-    }
-    return groups;
-  }, [items]);
+  const toggleDateSort = () => {
+    setDateSort((prev) => (prev === 'desc' ? 'asc' : 'desc'));
+  };
 
   return (
     <div
@@ -148,7 +121,7 @@ export default function PlayerHistoryModal({
               </p>
               <p className="flex items-center gap-1.5 text-sm text-neutral-500">
                 <History size={14} />
-                Historial de jornadas
+                Historial de partidos
               </p>
             </div>
           </div>
@@ -170,107 +143,113 @@ export default function PlayerHistoryModal({
             </div>
           ) : error ? (
             <p className="py-8 text-center text-sm text-danger-600">{error}</p>
-          ) : groupedByTournament.length === 0 ? (
+          ) : sortedItems.length === 0 ? (
             <p className="rounded-lg border border-dashed border-neutral-200 py-10 text-center text-sm text-neutral-500">
               Este jugador aún no participó en ninguna jornada.
             </p>
           ) : (
-            <div className="flex flex-col gap-6">
-              {groupedByTournament.map((group) => {
-                const badgeClass =
-                  TOURNAMENT_BADGE[
-                    tournamentColorIndex.get(group.tournamentId) ?? 0
-                  ];
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs text-neutral-500">
+                  {sortedItems.length} jornada
+                  {sortedItems.length === 1 ? '' : 's'}
+                </span>
+                <button
+                  type="button"
+                  onClick={toggleDateSort}
+                  className="inline-flex items-center justify-center rounded-lg border border-neutral-200 bg-white p-1.5 text-neutral-600 hover:bg-neutral-50 hover:text-neutral-800"
+                  aria-label={
+                    dateSort === 'desc'
+                      ? 'Ordenar por fecha ascendente'
+                      : 'Ordenar por fecha descendente'
+                  }
+                  title={
+                    dateSort === 'desc'
+                      ? 'Más recientes primero'
+                      : 'Más antiguas primero'
+                  }
+                >
+                  {dateSort === 'desc' ? (
+                    <ArrowDownWideNarrow size={16} />
+                  ) : (
+                    <ArrowUpWideNarrow size={16} />
+                  )}
+                </button>
+              </div>
 
-                return (
-                  <section key={group.tournamentId}>
-                    <div className="mb-3 flex items-center gap-2">
-                      <span
-                        className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${badgeClass}`}
-                      >
-                        <Trophy size={12} />
-                        {group.tournamentName}
-                      </span>
-                      <span className="text-xs text-neutral-400">
-                        {group.journeys.length} jornada
-                        {group.journeys.length === 1 ? '' : 's'}
-                      </span>
+              <ul className="flex flex-col gap-3">
+                {sortedItems.map((item) => (
+                  <li
+                    key={item.journey.id}
+                    className="overflow-hidden rounded-xl border border-neutral-200 bg-neutral-50/50"
+                  >
+                    <div className="flex items-center justify-between gap-2 border-b border-neutral-200 bg-white px-3 py-2.5">
+                      <div>
+                        <p className="text-sm font-semibold text-neutral-800">
+                          {formatDate(item.journey.journeyDate)}
+                        </p>
+                        <p className="text-xs text-neutral-500">
+                          {item.tournamentName}
+                          {' — '}
+                          {item.journey.status === 'finished'
+                            ? 'Finalizada'
+                            : 'Abierta'}
+                        </p>
+                      </div>
                     </div>
 
-                    <ul className="flex flex-col gap-3">
-                      {group.journeys.map((item) => (
-                        <li
-                          key={item.journey.id}
-                          className="overflow-hidden rounded-xl border border-neutral-200 bg-neutral-50/50"
-                        >
-                          <div className="flex items-center justify-between gap-2 border-b border-neutral-200 bg-white px-3 py-2.5">
-                            <div>
-                              <p className="text-sm font-semibold text-neutral-800">
-                                {formatDate(item.journey.journeyDate)}
-                              </p>
-                              <p className="text-xs text-neutral-400">
-                                {item.journey.status === 'finished'
-                                  ? 'Finalizada'
-                                  : 'Abierta'}
-                              </p>
-                            </div>
-                          </div>
+                    {item.matches.length === 0 ? (
+                      <p className="px-3 py-3 text-sm text-neutral-500">
+                        Sin partidos generados.
+                      </p>
+                    ) : (
+                      <ul className="divide-y divide-neutral-100">
+                        {item.matches.map((mv) => {
+                          const outcome = OUTCOME_STYLES[mv.outcome];
+                          const partner = playerName(players, mv.partnerId);
+                          const opp1 = playerName(players, mv.opponentIds[0]);
+                          const opp2 = playerName(players, mv.opponentIds[1]);
 
-                          {item.matches.length === 0 ? (
-                            <p className="px-3 py-3 text-sm text-neutral-500">
-                              Sin partidos generados.
-                            </p>
-                          ) : (
-                            <ul className="divide-y divide-neutral-100">
-                              {item.matches.map((mv) => {
-                                const outcome = OUTCOME_STYLES[mv.outcome];
-                                const partner = playerName(players, mv.partnerId);
-                                const opp1 = playerName(players, mv.opponentIds[0]);
-                                const opp2 = playerName(players, mv.opponentIds[1]);
-
-                                return (
-                                  <li
-                                    key={mv.match.id}
-                                    className="flex items-center gap-3 px-3 py-2.5"
-                                  >
-                                    <span className="w-8 shrink-0 text-center text-xs font-medium text-neutral-400">
-                                      R{mv.round}
-                                    </span>
-                                    <div className="min-w-0 flex-1">
-                                      <p className="truncate text-sm text-neutral-800">
-                                        <span className="font-medium">
-                                          {player.displayName}
-                                        </span>
-                                        {' / '}
-                                        {partner}
-                                      </p>
-                                      <p className="truncate text-sm text-neutral-500">
-                                        vs {opp1} / {opp2}
-                                      </p>
-                                    </div>
-                                    <div className="flex shrink-0 items-center gap-2">
-                                      <span className="tabular-nums text-sm font-bold text-neutral-800">
-                                        {mv.outcome === 'pending'
-                                          ? '— : —'
-                                          : `${mv.scoreOwn} : ${mv.scoreOpp}`}
-                                      </span>
-                                      <span
-                                        className={`inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold ${outcome.className}`}
-                                      >
-                                        {outcome.label}
-                                      </span>
-                                    </div>
-                                  </li>
-                                );
-                              })}
-                            </ul>
-                          )}
-                        </li>
-                      ))}
-                    </ul>
-                  </section>
-                );
-              })}
+                          return (
+                            <li
+                              key={mv.match.id}
+                              className="flex items-center gap-3 px-3 py-2.5"
+                            >
+                              <span className="w-8 shrink-0 text-center text-xs font-medium text-neutral-400">
+                                R{mv.round}
+                              </span>
+                              <div className="min-w-0 flex-1">
+                                <p className="truncate text-sm text-neutral-800">
+                                  <span className="font-medium">
+                                    {player.displayName}
+                                  </span>
+                                  {' / '}
+                                  {partner}
+                                </p>
+                                <p className="truncate text-sm text-neutral-500">
+                                  vs {opp1} / {opp2}
+                                </p>
+                              </div>
+                              <div className="flex shrink-0 items-center gap-2">
+                                <span className="tabular-nums text-sm font-bold text-neutral-800">
+                                  {mv.outcome === 'pending'
+                                    ? '— : —'
+                                    : `${mv.scoreOwn} : ${mv.scoreOpp}`}
+                                </span>
+                                <span
+                                  className={`inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold ${outcome.className}`}
+                                >
+                                  {outcome.label}
+                                </span>
+                              </div>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    )}
+                  </li>
+                ))}
+              </ul>
             </div>
           )}
         </div>
