@@ -119,9 +119,6 @@ function MiniRankingTable({
               <th className="w-14 whitespace-nowrap px-1 py-2.5 text-center text-xs font-semibold uppercase tracking-wide text-neutral-400">
                 Dif/P
               </th>
-              <th className="w-10 whitespace-nowrap px-1 py-2.5 text-center text-xs font-semibold uppercase tracking-wide text-neutral-400">
-                JJ
-              </th>
               <th className="hidden w-10 whitespace-nowrap px-1 py-2.5 text-center text-xs font-semibold uppercase tracking-wide text-neutral-400 min-[420px]:table-cell">
                 PJ
               </th>
@@ -133,6 +130,12 @@ function MiniRankingTable({
               </th>
               <th className="hidden w-10 whitespace-nowrap px-1 py-2.5 text-center text-xs font-semibold uppercase tracking-wide text-neutral-400 min-[420px]:table-cell">
                 PP
+              </th>
+              <th className="hidden w-10 whitespace-nowrap px-1 py-2.5 text-center text-xs font-semibold uppercase tracking-wide text-neutral-400 min-[420px]:table-cell">
+                PF
+              </th>
+              <th className="hidden w-10 whitespace-nowrap px-1 py-2.5 text-center text-xs font-semibold uppercase tracking-wide text-neutral-400 min-[420px]:table-cell">
+                PC
               </th>
             </tr>
           </thead>
@@ -173,9 +176,6 @@ function MiniRankingTable({
                     {row.difference > 0 ? '+' : ''}
                     {row.difference.toFixed(2)}
                   </td>
-                  <td className="w-10 whitespace-nowrap px-1 py-2.5 text-center tabular-nums text-neutral-600">
-                    {row.journeysPlayed}
-                  </td>
                   <td className="hidden w-10 whitespace-nowrap px-1 py-2.5 text-center tabular-nums text-neutral-600 min-[420px]:table-cell">
                     {row.matchesPlayed}
                   </td>
@@ -187,6 +187,12 @@ function MiniRankingTable({
                   </td>
                   <td className="hidden w-10 whitespace-nowrap px-1 py-2.5 text-center tabular-nums text-neutral-600 min-[420px]:table-cell">
                     {row.losses}
+                  </td>
+                  <td className="hidden w-10 whitespace-nowrap px-1 py-2.5 text-center tabular-nums text-neutral-600 min-[420px]:table-cell">
+                    {row.pointsFor}
+                  </td>
+                  <td className="hidden w-10 whitespace-nowrap px-1 py-2.5 text-center tabular-nums text-neutral-600 min-[420px]:table-cell">
+                    {row.pointsAgainst}
                   </td>
                 </tr>
               );
@@ -317,7 +323,7 @@ export default function PlayerStatsModal({ player, onClose }: PlayerStatsModalPr
                 Aún no hay partidos finalizados para este jugador.
               </p>
             ) : (
-              <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+              <div className="grid grid-cols-3 gap-2">
                 <StatCell label="Pts por partido" value={stats.points.toFixed(2)} highlight />
                 <StatCell
                   label="Dif por partido"
