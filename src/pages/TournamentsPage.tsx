@@ -1,19 +1,39 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Trophy } from 'lucide-react';
 import { useTournamentStore } from '@/store/tournament-store';
 import { useAuthStore } from '@/store/auth-store';
+import { can } from '@/lib/permissions';
+import { getCurrentTournamentId } from '@/services/journeyService';
 import TournamentForm from '@/components/tournaments/TournamentForm';
 import TournamentList from '@/components/tournaments/TournamentList';
 import Card from '@/components/ui/Card';
 
 export default function TournamentsPage() {
   const role = useAuthStore((s) => s.role);
-  const isAdmin = role === 'admin';
-  const { tournaments, isLoading, fetchTournaments, createTournament, deleteTournament } =
-    useTournamentStore();
+  const canManage = can.manageTournaments(role);
+  const {
+    tournaments,
+    isLoading,
+    fetchTournaments,
+    createTournament,
+    updateTournament,
+    deleteTournament,
+  } = useTournamentStore();
+  const [currentTournamentId, setCurrentTournamentId] = useState<number | null>(null);
 
   useEffect(() => {
     fetchTournaments();
+
+    let cancelled = false;
+    void getCurrentTournamentId()
+      .then((id) => {
+        if (!cancelled) setCurrentTournamentId(id);
+      })
+      .catch(console.error);
+
+    return () => {
+      cancelled = true;
+    };
   }, [fetchTournaments]);
 
   return (
@@ -21,13 +41,13 @@ export default function TournamentsPage() {
       <div>
         <h2 className="text-2xl font-semibold text-neutral-800">Torneos</h2>
         <p className="mt-1 text-sm text-neutral-500">
-          {isAdmin
+          {canManage
             ? 'Creá y administrá los torneos del club.'
             : 'Consulta los torneos disponibles.'}
         </p>
       </div>
 
-      {isAdmin && (
+      {canManage && (
         <Card title="Nuevo torneo" description="Una descripción corta alcanza.">
           <TournamentForm onSubmit={createTournament} />
         </Card>
@@ -47,7 +67,9 @@ export default function TournamentsPage() {
         ) : (
           <TournamentList
             tournaments={tournaments}
-            onDelete={isAdmin ? deleteTournament : undefined}
+            currentTournamentId={currentTournamentId}
+            onUpdate={canManage ? updateTournament : undefined}
+            onDelete={canManage ? deleteTournament : undefined}
           />
         )}
       </Card>

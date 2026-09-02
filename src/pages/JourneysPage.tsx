@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { CalendarDays, ChevronDown } from "lucide-react";
+import { CalendarDays, ChevronDown, Archive } from "lucide-react";
 import { useTournamentStore } from "@/store/tournament-store";
 import { useJourneyStore } from "@/store/journey-store";
 import { useJourneyMatchStore } from "@/store/journey-match-store";
@@ -9,7 +9,9 @@ import { can } from "@/lib/permissions";
 import JourneyForm from "@/components/journeys/JourneyForm";
 import JourneyList from "@/components/journeys/JourneyList";
 import PlayerSelectionModal from "@/components/journeys/PlayerSelectionModal";
+import DeletedJourneysModal from "@/components/journeys/DeletedJourneysModal";
 import Card from "@/components/ui/Card";
+import Button from "@/components/ui/Button";
 
 export default function JourneysPage() {
   const navigate = useNavigate();
@@ -35,8 +37,8 @@ export default function JourneysPage() {
   const [activeJourneyId, setActiveJourneyId] =
     useState<number | null>(null);
   const [modalMode, setModalMode] = useState<"create" | "replace">("create");
-
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [showDeletedModal, setShowDeletedModal] = useState(false);
 
   useEffect(() => {
     fetchTournaments();
@@ -57,18 +59,37 @@ export default function JourneysPage() {
     });
   }, [journeys]);
 
+  const handleJourneyChanged = async () => {
+    await Promise.all([
+      fetchJourneys(),
+      fetchJourneyIdsWithMatches(),
+    ]);
+  };
+
   return (
     <div className="flex flex-col gap-8 lg:gap-6">
-      <div>
-        <h2 className="text-2xl font-semibold text-neutral-800">
-          Jornadas
-        </h2>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h2 className="text-2xl font-semibold text-neutral-800">
+            Jornadas
+          </h2>
 
-        <p className="mt-1 text-sm text-neutral-500">
-          {can.createJourney(role)
-            ? "Creá fechas, asigná jugadores y generá los partidos automáticamente."
-            : "Consultá las jornadas registradas y sus partidos."}
-        </p>
+          <p className="mt-1 text-sm text-neutral-500">
+            {can.createJourney(role)
+              ? "Creá fechas, asigná jugadores y generá los partidos automáticamente."
+              : "Consultá las jornadas registradas y sus partidos."}
+          </p>
+        </div>
+
+        {can.viewDeletedJourneys(role) && (
+          <Button
+            variant="secondary"
+            icon={Archive}
+            onClick={() => setShowDeletedModal(true)}
+          >
+            Jornadas eliminadas
+          </Button>
+        )}
       </div>
 
       {can.createJourney(role) && (
@@ -146,12 +167,7 @@ export default function JourneysPage() {
             onViewMatches={(id) =>
               navigate(`/jornadas/${id}`)
             }
-            onJourneyDeleted={async () => {
-              await Promise.all([
-                fetchJourneys(),
-                fetchJourneyIdsWithMatches(),
-              ]);
-            }}
+            onJourneyChanged={handleJourneyChanged}
           />
         )}
       </Card>
@@ -175,6 +191,14 @@ export default function JourneysPage() {
           onSuccess={() =>
             fetchJourneyIdsWithMatches()
           }
+        />
+      )}
+
+      {showDeletedModal && (
+        <DeletedJourneysModal
+          tournaments={tournaments}
+          onClose={() => setShowDeletedModal(false)}
+          onChanged={handleJourneyChanged}
         />
       )}
     </div>

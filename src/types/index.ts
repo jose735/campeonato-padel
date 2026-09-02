@@ -42,7 +42,7 @@ export type CreateTournamentInput = {
   description: string;
 };
 
-export type JourneyStatus = 'open' | 'finished';
+export type JourneyStatus = 'open' | 'finished' | 'deleted';
 
 export type Journey = {
   id: number;

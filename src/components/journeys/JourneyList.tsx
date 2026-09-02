@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Users, Eye, Calendar, Trash2, Loader2, Pencil } from "lucide-react";
+import { Users, Eye, Calendar, ArrowRightLeft, Pencil } from "lucide-react";
 import type { Journey, Tournament } from "@/types";
 import Button from "@/components/ui/Button";
 import Pagination from "@/components/ui/Pagination";
@@ -8,7 +8,8 @@ import SegmentedControl from "@/components/ui/SegmentedControl";
 import { usePagination } from "@/hooks/usePagination";
 import { useAuthStore } from "@/store/auth-store";
 import { can } from "@/lib/permissions";
-import { deleteCompleteJourney } from "@/services/journeyDeletionService";
+import { isDeletedTournamentId } from "@/lib/constants";
+import ReassignJourneyModal from "@/components/journeys/ReassignJourneyModal";
 
 interface JourneyListProps {
   journeys: Journey[];
@@ -17,7 +18,7 @@ interface JourneyListProps {
   onManagePlayers: (journeyId: number) => void;
   onReplacePlayer: (journeyId: number) => void;
   onViewMatches: (journeyId: number) => void;
-  onJourneyDeleted: () => Promise<void>;
+  onJourneyChanged: () => Promise<void>;
   pageSize?: number;
 }
 
@@ -37,20 +38,17 @@ export default function JourneyList({
   onManagePlayers,
   onReplacePlayer,
   onViewMatches,
-  onJourneyDeleted,
+  onJourneyChanged,
   pageSize = 10,
 }: JourneyListProps) {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
-
-  const [deletingJourneyId, setDeletingJourneyId] = useState<number | null>(
-    null,
-  );
+  const [reassignJourney, setReassignJourney] = useState<Journey | null>(null);
 
   const role = useAuthStore((state) => state.role);
   const canManagePlayers = can.manageJourneyPlayers(role);
   const canReplacePlayer = can.replaceJourneyPlayer(role);
-  const canDelete = can.deleteJourney(role);
+  const canReassign = can.reassignJourney(role);
 
   const getTournamentName = (tournamentId: number) =>
     tournaments.find((t) => t.id === tournamentId)?.description ??
@@ -60,6 +58,10 @@ export default function JourneyList({
     const term = normalize(search.trim());
 
     return journeys.filter((journey) => {
+      // Las del torneo especial no deberían llegar, pero por seguridad las filtramos
+      if (isDeletedTournamentId(journey.tournamentId)) return false;
+      if (journey.status === "deleted") return false;
+
       const isFinished = journey.status === "finished";
 
       if (statusFilter === "open" && isFinished) return false;
@@ -88,31 +90,6 @@ export default function JourneyList({
   const handleStatusChange = (value: StatusFilter) => {
     setStatusFilter(value);
     setPage(1);
-  };
-
-  const handleDeleteJourney = async (journey: Journey) => {
-    const tournamentName = getTournamentName(journey.tournamentId);
-
-    const confirmed = window.confirm(
-      `¿Estás seguro de que deseas eliminar la jornada del ${journey.journeyDate} del torneo "${tournamentName}"?\n\nEsta acción eliminará también sus partidos y jugadores asignados y no se puede deshacer.`,
-    );
-
-    if (!confirmed) return;
-
-    setDeletingJourneyId(journey.id);
-
-    try {
-      await deleteCompleteJourney(journey.id);
-      await onJourneyDeleted();
-    } catch (error) {
-      console.error("Error al eliminar la jornada:", error);
-
-      window.alert(
-        "No se pudo eliminar la jornada. Por favor, intenta nuevamente.",
-      );
-    } finally {
-      setDeletingJourneyId(null);
-    }
   };
 
   return (
@@ -144,9 +121,7 @@ export default function JourneyList({
         <ul className="flex flex-col gap-2">
           {pageItems.map((journey) => {
             const hasMatches = journeyIdsWithMatches.includes(journey.id);
-
             const isFinished = journey.status === "finished";
-            const isDeleting = deletingJourneyId === journey.id;
 
             return (
               <li
@@ -181,7 +156,6 @@ export default function JourneyList({
                         variant="secondary"
                         icon={Eye}
                         onClick={() => onViewMatches(journey.id)}
-                        disabled={isDeleting}
                       >
                         Ver partidos
                       </Button>
@@ -190,7 +164,6 @@ export default function JourneyList({
                         <button
                           type="button"
                           onClick={() => onReplacePlayer(journey.id)}
-                          disabled={isDeleting}
                           aria-label="Reemplazar jugador"
                           title="Reemplazar jugador"
                           className="inline-flex items-center justify-center rounded-lg border border-neutral-300 bg-white p-2.5 text-neutral-700 transition-colors hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-50"
@@ -205,22 +178,19 @@ export default function JourneyList({
                         variant="secondary"
                         icon={Users}
                         onClick={() => onManagePlayers(journey.id)}
-                        disabled={isDeleting}
                       >
                         Agregar jugadores
                       </Button>
                     )
                   )}
 
-                  {canDelete && (
+                  {canReassign && (
                     <Button
-                      variant="danger"
-                      icon={isDeleting ? Loader2 : Trash2}
-                      onClick={() => handleDeleteJourney(journey)}
-                      disabled={isDeleting}
-                      className={isDeleting ? "[&_svg]:animate-spin" : ""}
+                      variant="secondary"
+                      icon={ArrowRightLeft}
+                      onClick={() => setReassignJourney(journey)}
                     >
-                      {isDeleting ? "Eliminando..." : "Eliminar"}
+                      Reasignar
                     </Button>
                   )}
                 </div>
@@ -237,6 +207,15 @@ export default function JourneyList({
         pageSize={pageSize}
         onPageChange={setPage}
       />
+
+      {reassignJourney && (
+        <ReassignJourneyModal
+          journey={reassignJourney}
+          tournaments={tournaments}
+          onClose={() => setReassignJourney(null)}
+          onSuccess={onJourneyChanged}
+        />
+      )}
     </div>
   );
 }

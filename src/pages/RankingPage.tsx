@@ -3,6 +3,7 @@ import { Trophy } from "lucide-react";
 import { useTournamentStore } from "@/store/tournament-store";
 import { usePlayerStore } from "@/store/player-store";
 import { getMatchesByTournamentId } from "@/services/journeyMatchService";
+import { getCurrentTournamentId } from "@/services/journeyService";
 import { calculateStandings, buildWeightedStandings } from "@/lib/standings";
 import JourneyStandings from "@/components/journeys/JourneyStandings";
 import SelectField from "@/components/ui/SelectField";
@@ -21,6 +22,9 @@ export default function RankingPage() {
   const [selectedTournamentId, setSelectedTournamentId] = useState<number | "">(
     "",
   );
+  const [currentTournamentId, setCurrentTournamentId] = useState<number | null>(
+    null,
+  );
   const [matches, setMatches] = useState<JourneyMatch[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [mode, setMode] = useState<RankingMode>("ponderada");
@@ -28,6 +32,20 @@ export default function RankingPage() {
   useEffect(() => {
     fetchTournaments();
     fetchPlayers();
+
+    let cancelled = false;
+    void getCurrentTournamentId()
+      .then((id) => {
+        if (!cancelled && id !== null) {
+          setCurrentTournamentId(id);
+          setSelectedTournamentId(id);
+        }
+      })
+      .catch(console.error);
+
+    return () => {
+      cancelled = true;
+    };
   }, [fetchTournaments, fetchPlayers]);
 
   useEffect(() => {
@@ -123,6 +141,7 @@ export default function RankingPage() {
               {tournaments.map((t) => (
                 <option key={t.id} value={t.id}>
                   {t.description}
+                  {currentTournamentId === t.id ? " (actual)" : ""}
                 </option>
               ))}
             </SelectField>

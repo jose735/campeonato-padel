@@ -1,17 +1,12 @@
+import { supabase } from '@/lib/supabase';
+import { DELETED_TOURNAMENT_ID } from '@/lib/constants';
 import {
-  deleteJourney,
   getJourneyById,
   getJourneysByDate,
+  reassignJourneyTournament,
   updateJourneyMatchSort,
-} from "@/services/journeyService";
-import {
-  getMatchesByJourneyId,
-  deleteJourneyMatch,
-} from "@/services/journeyMatchService";
-import {
-  getParticipantsByJourneyId,
-  deleteJourneyParticipant,
-} from "@/services/journeyParticipantService";
+  deleteJourney,
+} from '@/services/journeyService';
 
 async function resequenceJourneysForDate(journeyDate: string): Promise<void> {
   const remaining = await getJourneysByDate(journeyDate);
@@ -35,33 +30,53 @@ async function resequenceJourneysForDate(journeyDate: string): Promise<void> {
   );
 }
 
-export async function deleteCompleteJourney(
+/**
+ * Soft-delete de una jornada: la mueve al torneo especial "Jornadas eliminadas".
+ * No elimina partidos ni participantes.
+ * Reordena el journey_match_sort de las jornadas activas de la misma fecha.
+ */
+export async function softDeleteCompleteJourney(
   journeyId: number,
 ): Promise<void> {
-  // 0. Capturar la fecha ANTES de borrar, la vamos a necesitar para reordenar
-  const journeyToDelete = await getJourneyById(journeyId);
+  const journey = await getJourneyById(journeyId);
+  if (!journey) return;
 
-  // 1. Obtener los partidos de la jornada
-  const matches = await getMatchesByJourneyId(journeyId);
+  // Ya está en el torneo de eliminadas
+  if (journey.tournamentId === DELETED_TOURNAMENT_ID) return;
 
-  // 2. Eliminar primero los partidos
-  await Promise.all(matches.map((match) => deleteJourneyMatch(match.id)));
+  await reassignJourneyTournament(journeyId, DELETED_TOURNAMENT_ID);
 
-  // 3. Obtener los participantes de la jornada
-  const participants = await getParticipantsByJourneyId(journeyId);
+  if (journey.journeyDate) {
+    await resequenceJourneysForDate(journey.journeyDate);
+  }
+}
 
-  // 4. Eliminar los participantes
-  await Promise.all(
-    participants.map((participant) =>
-      deleteJourneyParticipant(participant.id),
-    ),
-  );
+/**
+ * Hard-delete: borra partidos, participantes y la jornada.
+ * Usar solo desde el modal de jornadas eliminadas, con confirmación.
+ */
+export async function hardDeleteCompleteJourney(
+  journeyId: number,
+): Promise<void> {
+  const journey = await getJourneyById(journeyId);
+  if (!journey) return;
 
-  // 5. Eliminar la jornada
+  const { error: matchesError } = await supabase
+    .from('journeys_matches')
+    .delete()
+    .eq('journey_id', journeyId);
+  if (matchesError) throw matchesError;
+
+  const { error: participantsError } = await supabase
+    .from('journeys_participants')
+    .delete()
+    .eq('journey_id', journeyId);
+  if (participantsError) throw participantsError;
+
   await deleteJourney(journeyId);
 
-  // 6. Reordenar las jornadas restantes de esa misma fecha
-  if (journeyToDelete) {
-    await resequenceJourneysForDate(journeyToDelete.journeyDate);
+  // Si no estaba en eliminadas, reordenar la fecha de origen
+  if (journey.tournamentId !== DELETED_TOURNAMENT_ID && journey.journeyDate) {
+    await resequenceJourneysForDate(journey.journeyDate);
   }
 }

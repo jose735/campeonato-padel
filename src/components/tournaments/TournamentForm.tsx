@@ -11,9 +11,17 @@ import Button from '@/components/ui/Button';
 
 interface TournamentFormProps {
   onSubmit: (input: CreateTournamentFormData) => Promise<void>;
+  defaultValues?: CreateTournamentFormData;
+  submitLabel?: string;
+  onCancel?: () => void;
 }
 
-export default function TournamentForm({ onSubmit }: TournamentFormProps) {
+export default function TournamentForm({
+  onSubmit,
+  defaultValues,
+  submitLabel = 'Crear torneo',
+  onCancel,
+}: TournamentFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const {
     register,
@@ -22,13 +30,16 @@ export default function TournamentForm({ onSubmit }: TournamentFormProps) {
     formState: { errors },
   } = useForm<CreateTournamentFormData>({
     resolver: zodResolver(createTournamentSchema),
+    defaultValues: defaultValues ?? { description: '' },
   });
 
   const onValid = async (data: CreateTournamentFormData) => {
     setIsSubmitting(true);
     try {
       await onSubmit(data);
-      reset();
+      if (!defaultValues) {
+        reset({ description: '' });
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -43,9 +54,16 @@ export default function TournamentForm({ onSubmit }: TournamentFormProps) {
         error={errors.description?.message}
         {...register('description')}
       />
-      <Button type="submit" isLoading={isSubmitting}>
-        Crear torneo
-      </Button>
+      <div className="flex flex-wrap gap-2">
+        {onCancel && (
+          <Button type="button" variant="secondary" onClick={onCancel} disabled={isSubmitting}>
+            Cancelar
+          </Button>
+        )}
+        <Button type="submit" isLoading={isSubmitting}>
+          {submitLabel}
+        </Button>
+      </div>
     </form>
   );
 }

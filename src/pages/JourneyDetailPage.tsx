@@ -10,6 +10,8 @@ import { usePlayerStore } from "@/store/player-store";
 import { useTournamentStore } from "@/store/tournament-store";
 import { useAuthStore } from "@/store/auth-store";
 import { can } from "@/lib/permissions";
+import { isDeletedTournamentId } from "@/lib/constants";
+import { getJourneyById } from "@/services/journeyService";
 
 import RoundSection from "@/components/journeys/RoundSection";
 import JourneyStandings from "@/components/journeys/JourneyStandings";
@@ -17,7 +19,7 @@ import AssignFieldsModal from "@/components/journeys/AssignFieldsModal";
 import Button from "@/components/ui/Button";
 
 import { calculateStandings } from "@/lib/standings";
-import type { CreateJourneyMatchInput } from "@/types";
+import type { CreateJourneyMatchInput, Journey } from "@/types";
 
 export default function JourneyDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -39,21 +41,35 @@ export default function JourneyDetailPage() {
   const { matches, isLoading, fetchMatchesByJourneyId, updateMatch } =
     useJourneyMatchStore();
 
+  // Cache del fetch remoto (p. ej. jornadas eliminadas que no están en el store)
+  const [remoteCache, setRemoteCache] = useState<{
+    id: number;
+    journey: Journey | null;
+  } | null>(null);
+
   const [isFinishing, setIsFinishing] = useState(false);
   const [isReopening, setIsReopening] = useState(false);
   const [isImageOpen, setIsImageOpen] = useState(false);
   const [isFieldsModalOpen, setIsFieldsModalOpen] = useState(false);
   const [fieldsSnapshot, setFieldsSnapshot] = useState<number[]>([]);
 
+  const isValidId = Boolean(journeyId) && !Number.isNaN(journeyId);
+
+  const journeyFromStore = useMemo(() => {
+    if (!isValidId) return null;
+    return journeys.find((j) => j.id === journeyId) ?? null;
+  }, [isValidId, journeyId, journeys]);
+
   useEffect(() => {
     fetchJourneys();
     fetchTournaments();
     fetchPlayers();
 
-    if (journeyId) {
+    if (isValidId) {
       fetchMatchesByJourneyId(journeyId);
     }
   }, [
+    isValidId,
     journeyId,
     fetchJourneys,
     fetchTournaments,
@@ -61,9 +77,39 @@ export default function JourneyDetailPage() {
     fetchMatchesByJourneyId,
   ]);
 
-  const journey = journeys.find((j) => j.id === journeyId);
+  // Solo fetch remoto si no está en el store (p. ej. eliminada).
+  // setState únicamente en callbacks async → evita setState síncrono en el effect.
+  useEffect(() => {
+    if (!isValidId || journeyFromStore) return;
+    if (remoteCache?.id === journeyId) return;
 
-  const isLocked = journey?.status === "finished";
+    let cancelled = false;
+
+    void getJourneyById(journeyId)
+      .then((j) => {
+        if (!cancelled) setRemoteCache({ id: journeyId, journey: j });
+      })
+      .catch((err) => {
+        console.error(err);
+        if (!cancelled) setRemoteCache({ id: journeyId, journey: null });
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isValidId, journeyId, journeyFromStore, remoteCache?.id]);
+
+  const journey =
+    journeyFromStore ??
+    (remoteCache?.id === journeyId ? remoteCache.journey : null);
+
+  const isLoadingJourney =
+    isValidId && !journeyFromStore && remoteCache?.id !== journeyId;
+
+  const isDeleted =
+    journey?.status === "deleted" ||
+    (journey != null && isDeletedTournamentId(journey.tournamentId));
+  const isLocked = journey?.status === "finished" || isDeleted;
 
   const tournament = tournaments.find((t) => t.id === journey?.tournamentId);
 
@@ -157,7 +203,7 @@ export default function JourneyDetailPage() {
   };
 
   const handleFinishJourney = async () => {
-    if (!journey || isLocked) return;
+    if (!journey || isLocked || isDeleted) return;
 
     const confirmed = window.confirm(
       "¿Finalizar esta jornada?\n\nNo se podrán modificar más marcadores. Los partidos sin jugar (0-0) no contarán en la tabla.",
@@ -175,7 +221,7 @@ export default function JourneyDetailPage() {
   };
 
   const handleReopenJourney = async () => {
-    if (!journey || !isLocked) return;
+    if (!journey || !isLocked || isDeleted) return;
 
     const confirmed = window.confirm(
       "¿Reabrir esta jornada?\n\nSe habilitará nuevamente la edición de marcadores.",
@@ -192,11 +238,11 @@ export default function JourneyDetailPage() {
     }
   };
 
-  if (!journeyId || Number.isNaN(journeyId)) {
+  if (!isValidId) {
     return <p className="text-danger-600">ID de jornada inválido.</p>;
   }
 
-  if (!journey) {
+  if (isLoadingJourney || !journey) {
     return <p className="text-neutral-500">Cargando jornada...</p>;
   }
 
@@ -229,9 +275,16 @@ export default function JourneyDetailPage() {
             )}
 
             <div className="min-w-0">
-              <h2 className="text-2xl font-semibold text-neutral-800">
-                {tournament?.description ?? "Jornada"}
-              </h2>
+              <div className="flex flex-wrap items-center gap-2">
+                <h2 className="text-2xl font-semibold text-neutral-800">
+                  {tournament?.description ?? "Jornada"}
+                </h2>
+                {isDeleted && (
+                  <span className="rounded-full bg-danger-100 px-2.5 py-0.5 text-xs font-medium text-danger-700">
+                    Eliminada
+                  </span>
+                )}
+              </div>
 
               <p className="mt-1 text-neutral-500">
                 {journey.journeyDate} · {journey.fieldsQuantity} canchas ·{" "}
@@ -240,48 +293,57 @@ export default function JourneyDetailPage() {
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
-            {!isLocked && canFinish && (
-              <Button
-                variant="secondary"
-                icon={Flag}
-                onClick={handleFinishJourney}
-                isLoading={isFinishing}
-                className="border-warning-300 bg-warning-50 text-warning-700 hover:bg-warning-100"
-              >
-                Finalizar jornada
-              </Button>
-            )}
+          {!isDeleted && (
+            <div className="flex flex-wrap items-center gap-2">
+              {!isLocked && canFinish && (
+                <Button
+                  variant="secondary"
+                  icon={Flag}
+                  onClick={handleFinishJourney}
+                  isLoading={isFinishing}
+                  className="border-warning-300 bg-warning-50 text-warning-700 hover:bg-warning-100"
+                >
+                  Finalizar jornada
+                </Button>
+              )}
 
-            {isLocked && canReopen && (
-              <Button
-                variant="secondary"
-                icon={RotateCcw}
-                onClick={handleReopenJourney}
-                isLoading={isReopening}
-              >
-                Reabrir jornada
-              </Button>
-            )}
+              {isLocked && canReopen && (
+                <Button
+                  variant="secondary"
+                  icon={RotateCcw}
+                  onClick={handleReopenJourney}
+                  isLoading={isReopening}
+                >
+                  Reabrir jornada
+                </Button>
+              )}
 
-            {canEdit && matches.length > 0 && (
-              <Button
-                variant="secondary"
-                onClick={handleOpenFieldsModal}
-                disabled={isLocked}
-              >
-                Asignar canchas
-              </Button>
-            )}
+              {canEdit && matches.length > 0 && (
+                <Button
+                  variant="secondary"
+                  onClick={handleOpenFieldsModal}
+                  disabled={isLocked}
+                >
+                  Asignar canchas
+                </Button>
+              )}
 
-            {isLocked && !canReopen && (
-              <span className="self-start rounded-full bg-neutral-100 px-3 py-1.5 text-sm font-medium text-neutral-500">
-                Jornada finalizada
-              </span>
-            )}
-          </div>
+              {isLocked && !canReopen && (
+                <span className="self-start rounded-full bg-neutral-100 px-3 py-1.5 text-sm font-medium text-neutral-500">
+                  Jornada finalizada
+                </span>
+              )}
+            </div>
+          )}
         </div>
       </div>
+
+      {isDeleted && (
+        <p className="rounded-lg border border-danger-200 bg-danger-50 px-4 py-3 text-sm text-danger-700">
+          Esta jornada está eliminada. Solo se puede consultar; no se pueden
+          editar marcadores ni cambiar su estado desde aquí.
+        </p>
+      )}
 
       {/* Partidos */}
       {isLoading ? (
@@ -301,7 +363,7 @@ export default function JourneyDetailPage() {
                 players={players}
                 scoreLimit={journey.scoreLimit}
                 isLocked={isLocked}
-                canEdit={canEdit}
+                canEdit={canEdit && !isDeleted}
                 onSaveRound={handleSaveRound}
               />
             ))}
@@ -344,7 +406,7 @@ export default function JourneyDetailPage() {
         </div>
       )}
 
-      {isFieldsModalOpen && (
+      {isFieldsModalOpen && !isDeleted && (
         <AssignFieldsModal
           currentFields={fieldsSnapshot}
           onClose={() => setIsFieldsModalOpen(false)}

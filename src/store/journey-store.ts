@@ -7,17 +7,25 @@ import {
   reopenJourney,
   getJourneys,
   getJourneysByTournamentId,
+  getDeletedJourneys,
+  softDeleteJourney,
+  reassignJourneyTournament,
   updateJourney,
 } from "@/services/journeyService";
 
 type JourneyStore = {
   journeys: Journey[];
+  deletedJourneys: Journey[];
   isLoading: boolean;
+  isLoadingDeleted: boolean;
   fetchJourneys: () => Promise<void>;
   fetchJourneysByTournamentId: (tournamentId: number) => Promise<void>;
+  fetchDeletedJourneys: () => Promise<void>;
   createJourney: (journey: CreateJourneyInput) => Promise<void>;
   updateJourney: (id: number, journey: CreateJourneyInput) => Promise<void>;
   deleteJourney: (journeyId: number) => Promise<void>;
+  softDeleteJourney: (journeyId: number) => Promise<void>;
+  reassignJourney: (journeyId: number, tournamentId: number) => Promise<void>;
   addJourney: (journey: Journey) => void;
   editJourney: (journey: Journey) => void;
   removeJourney: (journeyId: number) => void;
@@ -27,7 +35,9 @@ type JourneyStore = {
 
 export const useJourneyStore = create<JourneyStore>((set) => ({
   journeys: [],
+  deletedJourneys: [],
   isLoading: false,
+  isLoadingDeleted: false,
 
   fetchJourneys: async () => {
     set({ isLoading: true });
@@ -50,6 +60,18 @@ export const useJourneyStore = create<JourneyStore>((set) => ({
       console.error(error);
     } finally {
       set({ isLoading: false });
+    }
+  },
+
+  fetchDeletedJourneys: async () => {
+    set({ isLoadingDeleted: true });
+    try {
+      const deletedJourneys = await getDeletedJourneys();
+      set({ deletedJourneys });
+    } catch (error) {
+      console.error(error);
+    } finally {
+      set({ isLoadingDeleted: false });
     }
   },
 
@@ -95,6 +117,26 @@ export const useJourneyStore = create<JourneyStore>((set) => ({
       useJourneyStore.getState().removeJourney(journeyId);
     } catch (error) {
       console.error(error);
+    }
+  },
+
+  softDeleteJourney: async (journeyId) => {
+    try {
+      await softDeleteJourney(journeyId);
+      useJourneyStore.getState().removeJourney(journeyId);
+    } catch (error) {
+      console.error(error);
+      throw error;
+    }
+  },
+
+  reassignJourney: async (journeyId, tournamentId) => {
+    try {
+      const updated = await reassignJourneyTournament(journeyId, tournamentId);
+      useJourneyStore.getState().editJourney(updated);
+    } catch (error) {
+      console.error(error);
+      throw error;
     }
   },
 

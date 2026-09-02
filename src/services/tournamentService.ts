@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase';
+import { DELETED_TOURNAMENT_ID } from '@/lib/constants';
 import type { Tournament, TournamentRecord, CreateTournamentInput } from '@/types';
 
 const TABLE = 'tournaments';
@@ -11,10 +12,12 @@ function mapTournamentRecordToTournament(record: TournamentRecord): Tournament {
   };
 }
 
+/** Torneos visibles para listados, selectores y ranking. Excluye el torneo especial de eliminadas. */
 export async function getTournaments(): Promise<Tournament[]> {
   const { data, error } = await supabase
     .from(TABLE)
     .select('*')
+    .neq('id', DELETED_TOURNAMENT_ID)
     .order('created_at', { ascending: false });
 
   if (error) throw error;
@@ -36,6 +39,10 @@ export async function updateTournament(
   id: number,
   input: CreateTournamentInput
 ): Promise<Tournament> {
+  if (id === DELETED_TOURNAMENT_ID) {
+    throw new Error('No se puede editar el torneo especial de jornadas eliminadas.');
+  }
+
   const { data, error } = await supabase
     .from(TABLE)
     .update({ description: input.description })
@@ -48,6 +55,10 @@ export async function updateTournament(
 }
 
 export async function deleteTournament(id: number): Promise<void> {
+  if (id === DELETED_TOURNAMENT_ID) {
+    throw new Error('No se puede eliminar el torneo especial de jornadas eliminadas.');
+  }
+
   const { error } = await supabase.from(TABLE).delete().eq('id', id);
   if (error) throw error;
 }

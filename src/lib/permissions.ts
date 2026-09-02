@@ -22,6 +22,10 @@ export const can = {
 
   deleteJourney: (role: UserRole | null) => role === 'admin',
 
+  reassignJourney: (role: UserRole | null) => role === 'admin',
+
+  viewDeletedJourneys: (role: UserRole | null) => role === 'admin',
+
   reopenJourney: (role: UserRole | null) => role === 'admin',
 
   replaceJourneyPlayer: (role: UserRole | null) => role === 'admin',
