@@ -9,11 +9,23 @@ function mapTournamentRecordToTournament(record: TournamentRecord): Tournament {
     id: record.id,
     description: record.description,
     createdAt: record.created_at,
+    isCurrent: Boolean(record.is_current),
   };
 }
 
-/** Torneos visibles para listados, selectores y ranking. Excluye el torneo especial de eliminadas. */
+/** Todos los torneos, incluido el especial de jornadas eliminadas (listado admin). */
 export async function getTournaments(): Promise<Tournament[]> {
+  const { data, error } = await supabase
+    .from(TABLE)
+    .select('*')
+    .order('created_at', { ascending: false });
+
+  if (error) throw error;
+  return (data as TournamentRecord[]).map(mapTournamentRecordToTournament);
+}
+
+/** Torneos seleccionables (ranking, formularios, reasignar). Excluye el especial. */
+export async function getActiveTournaments(): Promise<Tournament[]> {
   const { data, error } = await supabase
     .from(TABLE)
     .select('*')
@@ -22,6 +34,47 @@ export async function getTournaments(): Promise<Tournament[]> {
 
   if (error) throw error;
   return (data as TournamentRecord[]).map(mapTournamentRecordToTournament);
+}
+
+/**
+ * Id del torneo marcado como actual (is_current = true).
+ * Si ninguno tiene el flag, retorna null (el caller puede usar el fallback por jornadas).
+ */
+export async function getMarkedCurrentTournamentId(): Promise<number | null> {
+  const { data, error } = await supabase
+    .from(TABLE)
+    .select('id')
+    .eq('is_current', true)
+    .neq('id', DELETED_TOURNAMENT_ID)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data?.id ?? null;
+}
+
+/**
+ * Marca un torneo como actual. Solo puede haber uno.
+ * No permite marcar el torneo especial de eliminadas.
+ */
+export async function setCurrentTournament(tournamentId: number): Promise<void> {
+  if (tournamentId === DELETED_TOURNAMENT_ID) {
+    throw new Error('No se puede marcar como actual el torneo de jornadas eliminadas.');
+  }
+
+  // Quitar el flag de todos
+  const { error: clearError } = await supabase
+    .from(TABLE)
+    .update({ is_current: false })
+    .eq('is_current', true);
+
+  if (clearError) throw clearError;
+
+  const { error: setError } = await supabase
+    .from(TABLE)
+    .update({ is_current: true })
+    .eq('id', tournamentId);
+
+  if (setError) throw setError;
 }
 
 export async function createTournament(input: CreateTournamentInput): Promise<Tournament> {

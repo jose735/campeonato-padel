@@ -18,6 +18,7 @@ export default function TournamentsPage() {
     createTournament,
     updateTournament,
     deleteTournament,
+    setAsCurrentTournament,
   } = useTournamentStore();
   const [currentTournamentId, setCurrentTournamentId] = useState<number | null>(null);
 
@@ -35,6 +36,11 @@ export default function TournamentsPage() {
       cancelled = true;
     };
   }, [fetchTournaments]);
+
+  const handleSetCurrent = async (id: number) => {
+    await setAsCurrentTournament(id);
+    setCurrentTournamentId(id);
+  };
 
   return (
     <div className="flex flex-col gap-8 lg:gap-6">
@@ -70,6 +76,7 @@ export default function TournamentsPage() {
             currentTournamentId={currentTournamentId}
             onUpdate={canManage ? updateTournament : undefined}
             onDelete={canManage ? deleteTournament : undefined}
+            onSetCurrent={canManage ? handleSetCurrent : undefined}
           />
         )}
       </Card>

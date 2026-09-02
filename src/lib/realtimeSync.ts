@@ -36,6 +36,7 @@ function mapTournament(record: TournamentRecord): Tournament {
     id: record.id,
     description: record.description,
     createdAt: record.created_at,
+    isCurrent: Boolean(record.is_current),
   };
 }
 
@@ -62,9 +63,9 @@ function mapMatch(record: JourneyMatchRecord): JourneyMatch {
     playerA2Id: record.player_a2_id,
     playerB1Id: record.player_b1_id,
     playerB2Id: record.player_b2_id,
-    scoreA: record.score_a,
-    scoreB: record.score_b,
-    pointsObtained: record.points_obtained,
+    scoreA: record.score_a ?? 0,
+    scoreB: record.score_b ?? 0,
+    pointsObtained: record.points_obtained ?? 0,
     fieldNumber: record.field_number,
     createdAt: record.created_at,
   };

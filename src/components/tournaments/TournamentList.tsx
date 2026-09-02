@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Trash2, Pencil, X } from 'lucide-react';
+import { Trash2, Pencil, X, Star } from 'lucide-react';
 import type { Tournament } from '@/types';
 import type { CreateTournamentFormData } from '@/schemas/general-schemas';
 import Button from '@/components/ui/Button';
@@ -7,12 +7,14 @@ import Pagination from '@/components/ui/Pagination';
 import SearchInput from '@/components/ui/SearchInput';
 import { usePagination } from '@/hooks/usePagination';
 import TournamentForm from '@/components/tournaments/TournamentForm';
+import { isDeletedTournamentId } from '@/lib/constants';
 
 interface TournamentListProps {
   tournaments: Tournament[];
   currentTournamentId?: number | null;
   onDelete?: (id: number) => void;
   onUpdate?: (id: number, input: CreateTournamentFormData) => Promise<void>;
+  onSetCurrent?: (id: number) => Promise<void>;
   pageSize?: number;
 }
 
@@ -28,10 +30,12 @@ export default function TournamentList({
   currentTournamentId = null,
   onDelete,
   onUpdate,
+  onSetCurrent,
   pageSize = 10,
 }: TournamentListProps) {
   const [search, setSearch] = useState('');
   const [editingTournament, setEditingTournament] = useState<Tournament | null>(null);
+  const [settingCurrentId, setSettingCurrentId] = useState<number | null>(null);
 
   const filteredTournaments = useMemo(() => {
     const term = normalize(search.trim());
@@ -58,6 +62,24 @@ export default function TournamentList({
     setEditingTournament(null);
   };
 
+  const handleSetCurrent = async (tournament: Tournament) => {
+    if (!onSetCurrent) return;
+    const confirmed = window.confirm(
+      `¿Establecer "${tournament.description}" como torneo actual?\n\nSe usará por defecto en ranking y como referencia del club.`,
+    );
+    if (!confirmed) return;
+
+    setSettingCurrentId(tournament.id);
+    try {
+      await onSetCurrent(tournament.id);
+    } catch (err) {
+      console.error(err);
+      window.alert('No se pudo establecer el torneo actual. Intentá de nuevo.');
+    } finally {
+      setSettingCurrentId(null);
+    }
+  };
+
   return (
     <div>
       <SearchInput
@@ -74,17 +96,23 @@ export default function TournamentList({
       ) : (
         <ul className="flex flex-col gap-2">
           {pageItems.map((tournament) => {
+            const isSpecial = isDeletedTournamentId(tournament.id);
             const isCurrent = currentTournamentId === tournament.id;
+            const isSetting = settingCurrentId === tournament.id;
+            const showActions = !isSpecial && (onUpdate || onDelete || onSetCurrent);
+
             return (
               <li
                 key={tournament.id}
-                className={`flex items-center justify-between gap-3 rounded-lg border px-4 py-3 ${
+                className={`flex flex-col gap-3 rounded-lg border px-4 py-3 sm:flex-row sm:items-center sm:justify-between ${
                   isCurrent
                     ? 'border-primary-300 bg-primary-50/70'
-                    : 'border-neutral-200 bg-neutral-50/60'
+                    : isSpecial
+                      ? 'border-neutral-200 bg-neutral-100/80'
+                      : 'border-neutral-200 bg-neutral-50/60'
                 }`}
               >
-                <div>
+                <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="font-medium text-neutral-800">
                       {tournament.description}
@@ -94,19 +122,37 @@ export default function TournamentList({
                         Actual
                       </span>
                     )}
+                    {isSpecial && (
+                      <span className="rounded-full bg-neutral-200 px-2 py-0.5 text-xs font-medium text-neutral-600">
+                        Especial
+                      </span>
+                    )}
                   </div>
                   <p className="text-sm text-neutral-500">
                     Creado:{' '}
                     {new Date(tournament.createdAt).toLocaleDateString('es-AR')}
                   </p>
                 </div>
-                {(onUpdate || onDelete) && (
-                  <div className="flex flex-wrap items-center gap-2">
+
+                {showActions && (
+                  <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+                    {onSetCurrent && !isCurrent && (
+                      <Button
+                        variant="secondary"
+                        icon={Star}
+                        onClick={() => handleSetCurrent(tournament)}
+                        disabled={settingCurrentId !== null}
+                        isLoading={isSetting}
+                      >
+                        Marcar actual
+                      </Button>
+                    )}
                     {onUpdate && (
                       <Button
                         variant="secondary"
                         icon={Pencil}
                         onClick={() => setEditingTournament(tournament)}
+                        disabled={settingCurrentId !== null}
                       >
                         Editar
                       </Button>
@@ -116,6 +162,7 @@ export default function TournamentList({
                         variant="danger"
                         icon={Trash2}
                         onClick={() => onDelete(tournament.id)}
+                        disabled={settingCurrentId !== null}
                       >
                         Eliminar
                       </Button>

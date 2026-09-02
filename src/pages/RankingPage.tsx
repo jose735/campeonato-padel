@@ -5,6 +5,7 @@ import { usePlayerStore } from "@/store/player-store";
 import { getMatchesByTournamentId } from "@/services/journeyMatchService";
 import { getCurrentTournamentId } from "@/services/journeyService";
 import { calculateStandings, buildWeightedStandings } from "@/lib/standings";
+import { isDeletedTournamentId } from "@/lib/constants";
 import JourneyStandings from "@/components/journeys/JourneyStandings";
 import SelectField from "@/components/ui/SelectField";
 import SegmentedControl from "@/components/ui/SegmentedControl";
@@ -18,6 +19,11 @@ type RankingMode = "general" | "ponderada";
 export default function RankingPage() {
   const { tournaments, fetchTournaments } = useTournamentStore();
   const { players, fetchPlayers } = usePlayerStore();
+
+  const selectableTournaments = useMemo(
+    () => tournaments.filter((t) => !isDeletedTournamentId(t.id)),
+    [tournaments],
+  );
 
   const [selectedTournamentId, setSelectedTournamentId] = useState<number | "">(
     "",
@@ -138,7 +144,7 @@ export default function RankingPage() {
               }}
             >
               <option value="">Selecciona un torneo</option>
-              {tournaments.map((t) => (
+              {selectableTournaments.map((t) => (
                 <option key={t.id} value={t.id}>
                   {t.description}
                   {currentTournamentId === t.id ? " (actual)" : ""}

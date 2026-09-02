@@ -78,7 +78,9 @@ export default function PlayerSelectionModal({
 
         const ids = participants.map((p) => p.playerId);
         const seedMap = new Map<number, number>();
-        participants.forEach((p) => seedMap.set(p.playerId, p.seed));
+        participants.forEach((p) => {
+          if (p.seed != null) seedMap.set(p.playerId, p.seed);
+        });
 
         setOriginalIds(ids);
         setSelectedIds(ids);

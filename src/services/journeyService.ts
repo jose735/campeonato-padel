@@ -71,11 +71,26 @@ export async function getJourneyById(id: number): Promise<Journey | null> {
 
 /**
  * Devuelve el id del torneo que se considera "actual":
- * el que tiene la jornada (no eliminada) con journey_date más reciente
- * (y, en caso de empate, el id de jornada más alto).
- * Retorna null si no hay jornadas.
+ * 1) el marcado explícitamente con is_current = true;
+ * 2) si no hay ninguno, el de la jornada (no eliminada) con journey_date más reciente
+ *    (y, en caso de empate, el id de jornada más alto).
+ * Retorna null si no hay torneo marcado ni jornadas.
  */
 export async function getCurrentTournamentId(): Promise<number | null> {
+  try {
+    const { data: marked, error: markedError } = await supabase
+      .from('tournaments')
+      .select('id')
+      .eq('is_current', true)
+      .neq('id', DELETED_TOURNAMENT_ID)
+      .maybeSingle();
+
+    // Si la columna aún no existe, seguimos con el fallback por jornadas
+    if (!markedError && marked?.id != null) return marked.id;
+  } catch {
+    // ignore y usar fallback
+  }
+
   const { data, error } = await supabase
     .from(TABLE)
     .select('tournament_id')

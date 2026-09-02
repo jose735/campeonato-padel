@@ -6,6 +6,7 @@ import { useJourneyStore } from "@/store/journey-store";
 import { useJourneyMatchStore } from "@/store/journey-match-store";
 import { useAuthStore } from "@/store/auth-store";
 import { can } from "@/lib/permissions";
+import { isDeletedTournamentId } from "@/lib/constants";
 import JourneyForm from "@/components/journeys/JourneyForm";
 import JourneyList from "@/components/journeys/JourneyList";
 import PlayerSelectionModal from "@/components/journeys/PlayerSelectionModal";
@@ -21,6 +22,11 @@ export default function JourneysPage() {
     tournaments,
     fetchTournaments,
   } = useTournamentStore();
+
+  const activeTournaments = useMemo(
+    () => tournaments.filter((t) => !isDeletedTournamentId(t.id)),
+    [tournaments],
+  );
 
   const {
     journeys,
@@ -120,7 +126,7 @@ export default function JourneysPage() {
           {isFormOpen && (
             <div className="border-t border-neutral-100 px-5 py-5 sm:px-6">
               <JourneyForm
-                tournaments={tournaments}
+                tournaments={activeTournaments}
                 onSubmit={createJourney}
               />
             </div>
@@ -154,7 +160,7 @@ export default function JourneysPage() {
         ) : (
           <JourneyList
             journeys={sortedJourneys}
-            tournaments={tournaments}
+            tournaments={activeTournaments}
             journeyIdsWithMatches={journeyIdsWithMatches}
             onManagePlayers={(id) => {
               setModalMode("create");
@@ -196,7 +202,7 @@ export default function JourneysPage() {
 
       {showDeletedModal && (
         <DeletedJourneysModal
-          tournaments={tournaments}
+          tournaments={activeTournaments}
           onClose={() => setShowDeletedModal(false)}
           onChanged={handleJourneyChanged}
         />

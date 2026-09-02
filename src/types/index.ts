@@ -30,12 +30,14 @@ export type Tournament = {
   id: number;
   description: string;
   createdAt: string;
+  isCurrent: boolean;
 };
 
 export type TournamentRecord = {
   id: number;
   description: string;
   created_at: string;
+  is_current?: boolean | null;
 };
 
 export type CreateTournamentInput = {
@@ -81,22 +83,22 @@ export type JourneyParticipant = {
   id: number;
   journeyId: number;
   playerId: number;
-  seed: number;
-  createdAt: string;
+  seed: number | null;
+  createdAt?: string;
 };
 
 export type JourneyParticipantRecord = {
   id: number;
   journey_id: number;
   player_id: number;
-  seed: number;
-  created_at: string;
+  seed: number | null;
+  created_at?: string;
 };
 
 export type CreateJourneyParticipantInput = {
   journeyId: number;
   playerId: number;
-  seed: number;
+  seed: number | null;
 };
 
 export type JourneyMatch = {
@@ -122,9 +124,9 @@ export type JourneyMatchRecord = {
   player_a2_id: number;
   player_b1_id: number;
   player_b2_id: number;
-  score_a: number;
-  score_b: number;
-  points_obtained: number;
+  score_a: number | null;
+  score_b: number | null;
+  points_obtained: number | null;
   field_number: number | null;
   created_at: string;
 };
@@ -136,8 +138,8 @@ export type CreateJourneyMatchInput = {
   playerA2Id: number;
   playerB1Id: number;
   playerB2Id: number;
-  scoreA: number;
-  scoreB: number;
-  pointsObtained: number;
-  fieldNumber: number;
+  scoreA?: number | null;
+  scoreB?: number | null;
+  pointsObtained?: number | null;
+  fieldNumber?: number | null;
 };
