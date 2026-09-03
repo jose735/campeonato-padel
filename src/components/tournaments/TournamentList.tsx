@@ -127,6 +127,11 @@ export default function TournamentList({
                         Especial
                       </span>
                     )}
+                    {!isSpecial && tournament.includeInHistorical && (
+                      <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700">
+                        Histórica
+                      </span>
+                    )}
                   </div>
                   <p className="text-sm text-neutral-500">
                     Creado:{' '}
@@ -198,7 +203,7 @@ export default function TournamentList({
                   Editar torneo
                 </h3>
                 <p className="mt-0.5 text-sm text-neutral-500">
-                  Cambiá el nombre del torneo.
+                  Cambiá el nombre o la inclusión en la tabla histórica.
                 </p>
               </div>
               <button
@@ -213,10 +218,14 @@ export default function TournamentList({
             <div className="px-5 py-4">
               <TournamentForm
                 key={editingTournament.id}
-                defaultValues={{ description: editingTournament.description }}
+                defaultValues={{
+                  description: editingTournament.description,
+                  includeInHistorical: editingTournament.includeInHistorical,
+                }}
                 submitLabel="Guardar cambios"
                 onCancel={() => setEditingTournament(null)}
                 onSubmit={handleUpdate}
+                hideHistoricalOption={isDeletedTournamentId(editingTournament.id)}
               />
             </div>
           </div>

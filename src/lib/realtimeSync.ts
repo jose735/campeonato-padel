@@ -26,6 +26,7 @@ function mapPlayer(record: PlayerRecord): Player {
     lastName: record.last_name,
     nickname,
     displayName: nickname ? nickname : fullName,
+    photoUrl: record.photo_url || undefined,
     createdAt: record.created_at,
     updatedAt: record.updated_at,
   };
@@ -37,6 +38,7 @@ function mapTournament(record: TournamentRecord): Tournament {
     description: record.description,
     createdAt: record.created_at,
     isCurrent: Boolean(record.is_current),
+    includeInHistorical: Boolean(record.include_in_historical),
   };
 }
 

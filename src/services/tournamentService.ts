@@ -10,6 +10,7 @@ function mapTournamentRecordToTournament(record: TournamentRecord): Tournament {
     description: record.description,
     createdAt: record.created_at,
     isCurrent: Boolean(record.is_current),
+    includeInHistorical: Boolean(record.include_in_historical),
   };
 }
 
@@ -80,7 +81,10 @@ export async function setCurrentTournament(tournamentId: number): Promise<void> 
 export async function createTournament(input: CreateTournamentInput): Promise<Tournament> {
   const { data, error } = await supabase
     .from(TABLE)
-    .insert({ description: input.description })
+    .insert({
+      description: input.description,
+      include_in_historical: input.includeInHistorical ?? false,
+    })
     .select()
     .single();
 
@@ -98,7 +102,10 @@ export async function updateTournament(
 
   const { data, error } = await supabase
     .from(TABLE)
-    .update({ description: input.description })
+    .update({
+      description: input.description,
+      include_in_historical: input.includeInHistorical ?? false,
+    })
     .eq('id', id)
     .select()
     .single();

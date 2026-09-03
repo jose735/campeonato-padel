@@ -57,6 +57,42 @@ export async function getMatchesByTournamentId(
   return (data as JourneyMatchRecord[]).map(mapRecordToJourneyMatch);
 }
 
+/**
+ * Partidos de todas las jornadas finalizadas de torneos marcados
+ * como include_in_historical = true. Si no hay ninguno, devuelve [].
+ */
+export async function getMatchesForHistoricalTable(): Promise<JourneyMatch[]> {
+  const { data: tournaments, error: tournamentsError } = await supabase
+    .from('tournaments')
+    .select('id')
+    .eq('include_in_historical', true);
+
+  if (tournamentsError) throw tournamentsError;
+
+  const tournamentIds = (tournaments ?? []).map((t) => t.id);
+  if (tournamentIds.length === 0) return [];
+
+  const { data: journeys, error: journeysError } = await supabase
+    .from('journeys')
+    .select('id')
+    .in('tournament_id', tournamentIds)
+    .eq('status', 'finished');
+
+  if (journeysError) throw journeysError;
+
+  const journeyIds = (journeys ?? []).map((j) => j.id);
+  if (journeyIds.length === 0) return [];
+
+  const { data, error } = await supabase
+    .from(TABLE)
+    .select('*')
+    .in('journey_id', journeyIds)
+    .order('round', { ascending: true });
+
+  if (error) throw error;
+  return (data as JourneyMatchRecord[]).map(mapRecordToJourneyMatch);
+}
+
 export async function getJourneyIdsWithMatches(): Promise<number[]> {
   const { data, error } = await supabase.from(TABLE).select('journey_id');
 

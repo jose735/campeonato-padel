@@ -2,7 +2,10 @@ import { useEffect, useMemo, useState } from "react";
 import { Trophy } from "lucide-react";
 import { useTournamentStore } from "@/store/tournament-store";
 import { usePlayerStore } from "@/store/player-store";
-import { getMatchesByTournamentId } from "@/services/journeyMatchService";
+import {
+  getMatchesByTournamentId,
+  getMatchesForHistoricalTable,
+} from "@/services/journeyMatchService";
 import { getCurrentTournamentId } from "@/services/journeyService";
 import { calculateStandings, buildWeightedStandings } from "@/lib/standings";
 import { isDeletedTournamentId } from "@/lib/constants";
@@ -15,6 +18,8 @@ import { supabase } from "@/lib/supabase";
 
 type RankingMode = "general" | "ponderada";
 
+/** Valor especial del selector: agrega todos los torneos con include_in_historical. */
+const HISTORICAL_VALUE = "historical";
 
 export default function RankingPage() {
   const { tournaments, fetchTournaments } = useTournamentStore();
@@ -25,15 +30,19 @@ export default function RankingPage() {
     [tournaments],
   );
 
-  const [selectedTournamentId, setSelectedTournamentId] = useState<number | "">(
-    "",
-  );
+  const [selectedTournamentId, setSelectedTournamentId] = useState<
+    number | typeof HISTORICAL_VALUE | ""
+  >("");
   const [currentTournamentId, setCurrentTournamentId] = useState<number | null>(
     null,
   );
   const [matches, setMatches] = useState<JourneyMatch[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [mode, setMode] = useState<RankingMode>("ponderada");
+
+  const isHistorical = selectedTournamentId === HISTORICAL_VALUE;
+  const hasSelection =
+    selectedTournamentId !== "" && selectedTournamentId !== undefined;
 
   useEffect(() => {
     fetchTournaments();
@@ -55,7 +64,15 @@ export default function RankingPage() {
   }, [fetchTournaments, fetchPlayers]);
 
   useEffect(() => {
-    if (selectedTournamentId === "") return;
+    if (!hasSelection) return;
+
+    // Evitar llamar a la API con un id inválido (p. ej. "" o NaN).
+    const canLoadTournament =
+      typeof selectedTournamentId === "number" &&
+      Number.isFinite(selectedTournamentId) &&
+      selectedTournamentId > 0;
+
+    if (!isHistorical && !canLoadTournament) return;
 
     let cancelled = false;
     let isFirstLoad = true;
@@ -65,7 +82,9 @@ export default function RankingPage() {
         setIsLoading(true);
       }
       try {
-        const data = await getMatchesByTournamentId(selectedTournamentId);
+        const data = isHistorical
+          ? await getMatchesForHistoricalTable()
+          : await getMatchesByTournamentId(selectedTournamentId as number);
         if (!cancelled) setMatches(data);
       } catch (error) {
         console.error(error);
@@ -81,7 +100,7 @@ export default function RankingPage() {
     void load();
 
     const channel = supabase
-      .channel(`ranking-${selectedTournamentId}`)
+      .channel(`ranking-${String(selectedTournamentId)}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "journeys_matches" },
@@ -96,18 +115,24 @@ export default function RankingPage() {
           void load();
         },
       )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "tournaments" },
+        () => {
+          if (isHistorical) void load();
+        },
+      )
       .subscribe();
 
     return () => {
       cancelled = true;
       void supabase.removeChannel(channel);
     };
-  }, [selectedTournamentId]);
+  }, [selectedTournamentId, hasSelection, isHistorical]);
 
   const generalStandings = useMemo(
-    () =>
-      selectedTournamentId === "" ? [] : calculateStandings(matches, players),
-    [selectedTournamentId, matches, players],
+    () => (hasSelection ? calculateStandings(matches, players) : []),
+    [hasSelection, matches, players],
   );
 
   const standings = useMemo(() => {
@@ -124,8 +149,9 @@ export default function RankingPage() {
           Ranking general
         </h2>
         <p className="mt-1 text-sm text-neutral-500">
-          Suma de todas las jornadas finalizadas del torneo. Las jornadas
-          abiertas no se incluyen.
+          {isHistorical
+            ? "Suma de todas las jornadas finalizadas de los torneos habilitados para la tabla histórica."
+            : "Suma de todas las jornadas finalizadas del torneo. Las jornadas abiertas no se incluyen."}
         </p>
       </div>
 
@@ -135,15 +161,20 @@ export default function RankingPage() {
             <SelectField
               label="Torneo"
               icon={Trophy}
-              value={selectedTournamentId}
+              value={selectedTournamentId === "" ? "" : String(selectedTournamentId)}
               onChange={(e) => {
-                const value =
-                  e.target.value === "" ? "" : Number(e.target.value);
-                setSelectedTournamentId(value);
-                if (value === "") setMatches([]);
+                const raw = e.target.value;
+                if (raw === HISTORICAL_VALUE) {
+                  setSelectedTournamentId(HISTORICAL_VALUE);
+                } else if (raw === "") {
+                  setSelectedTournamentId("");
+                  setMatches([]);
+                } else {
+                  setSelectedTournamentId(Number(raw));
+                }
               }}
             >
-              <option value="">Selecciona un torneo</option>
+              <option value={HISTORICAL_VALUE}>Tabla Histórica</option>
               {selectableTournaments.map((t) => (
                 <option key={t.id} value={t.id}>
                   {t.description}
@@ -153,7 +184,7 @@ export default function RankingPage() {
             </SelectField>
           </div>
 
-          {selectedTournamentId !== "" && (
+          {hasSelection && (
             <SegmentedControl
               value={mode}
               onChange={setMode}
@@ -166,14 +197,24 @@ export default function RankingPage() {
         </div>
       </Card>
 
-      {selectedTournamentId === "" ? (
+      {!hasSelection ? (
         <p className="text-sm text-neutral-500">
-          Elige un torneo para ver el ranking general.
+          Elige un torneo o la tabla histórica para ver el ranking.
         </p>
       ) : isLoading ? (
         <p className="text-sm text-neutral-500">Cargando ranking...</p>
       ) : (
-        <Card title={mode === "general" ? "Tabla general" : "Tabla ponderada"}>
+        <Card
+          title={
+            isHistorical
+              ? mode === "general"
+                ? "Tabla histórica general"
+                : "Tabla histórica ponderada"
+              : mode === "general"
+                ? "Tabla general"
+                : "Tabla ponderada"
+          }
+        >
           <JourneyStandings
             standings={standings}
             showDecimals={mode === "ponderada"}

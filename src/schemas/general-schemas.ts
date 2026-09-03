@@ -12,6 +12,7 @@ export const createTournamentSchema = z.object({
   description: z
     .string()
     .min(3, "La descripción debe tener mínimo 3 caracteres"),
+  includeInHistorical: z.boolean(),
 });
 
 export type CreateTournamentFormData = z.infer<typeof createTournamentSchema>;

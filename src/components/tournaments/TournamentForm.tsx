@@ -14,6 +14,8 @@ interface TournamentFormProps {
   defaultValues?: CreateTournamentFormData;
   submitLabel?: string;
   onCancel?: () => void;
+  /** Oculta el checkbox de tabla histórica (p. ej. torneo especial). */
+  hideHistoricalOption?: boolean;
 }
 
 export default function TournamentForm({
@@ -21,6 +23,7 @@ export default function TournamentForm({
   defaultValues,
   submitLabel = 'Crear torneo',
   onCancel,
+  hideHistoricalOption = false,
 }: TournamentFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const {
@@ -30,15 +33,23 @@ export default function TournamentForm({
     formState: { errors },
   } = useForm<CreateTournamentFormData>({
     resolver: zodResolver(createTournamentSchema),
-    defaultValues: defaultValues ?? { description: '' },
+    defaultValues: defaultValues ?? {
+      description: '',
+      includeInHistorical: false,
+    },
   });
 
   const onValid = async (data: CreateTournamentFormData) => {
     setIsSubmitting(true);
     try {
-      await onSubmit(data);
+      await onSubmit({
+        ...data,
+        includeInHistorical: hideHistoricalOption
+          ? false
+          : Boolean(data.includeInHistorical),
+      });
       if (!defaultValues) {
-        reset({ description: '' });
+        reset({ description: '', includeInHistorical: false });
       }
     } finally {
       setIsSubmitting(false);
@@ -54,6 +65,26 @@ export default function TournamentForm({
         error={errors.description?.message}
         {...register('description')}
       />
+
+      {!hideHistoricalOption && (
+        <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-neutral-200 bg-neutral-50/80 px-3 py-3 transition-colors hover:bg-neutral-50">
+          <input
+            type="checkbox"
+            className="mt-0.5 h-4 w-4 shrink-0 rounded border-neutral-300 text-primary-600 focus:ring-primary-500"
+            {...register('includeInHistorical')}
+          />
+          <span className="min-w-0">
+            <span className="block text-sm font-medium text-neutral-800">
+              Incluir en tabla histórica
+            </span>
+            <span className="mt-0.5 block text-xs text-neutral-500">
+              Las jornadas finalizadas de este torneo se sumarán cuando se elija
+              &quot;Tabla Histórica&quot; en el ranking.
+            </span>
+          </span>
+        </label>
+      )}
+
       <div className="flex flex-wrap gap-2">
         {onCancel && (
           <Button type="button" variant="secondary" onClick={onCancel} disabled={isSubmitting}>

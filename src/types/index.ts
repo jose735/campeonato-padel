@@ -31,6 +31,8 @@ export type Tournament = {
   description: string;
   createdAt: string;
   isCurrent: boolean;
+  /** Si true, las jornadas finalizadas de este torneo entran en la Tabla Histórica del ranking. */
+  includeInHistorical: boolean;
 };
 
 export type TournamentRecord = {
@@ -38,10 +40,12 @@ export type TournamentRecord = {
   description: string;
   created_at: string;
   is_current?: boolean | null;
+  include_in_historical?: boolean | null;
 };
 
 export type CreateTournamentInput = {
   description: string;
+  includeInHistorical?: boolean;
 };
 
 export type JourneyStatus = 'open' | 'finished' | 'deleted';
