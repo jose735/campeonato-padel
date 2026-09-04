@@ -164,8 +164,8 @@ export default function JourneyList({
                         <button
                           type="button"
                           onClick={() => onReplacePlayer(journey.id)}
-                          aria-label="Reemplazar jugador"
-                          title="Reemplazar jugador"
+                          aria-label="Editar jugadores o puntos"
+                          title="Editar jugadores o puntos límite"
                           className="inline-flex items-center justify-center rounded-lg border border-neutral-300 bg-white p-2.5 text-neutral-700 transition-colors hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-50"
                         >
                           <Pencil size={16} />

@@ -28,5 +28,10 @@ export const can = {
 
   reopenJourney: (role: UserRole | null) => role === 'admin',
 
-  replaceJourneyPlayer: (role: UserRole | null) => role === 'admin',
+  replaceJourneyPlayer: (role: UserRole | null) =>
+    role === 'coordinador' || role === 'admin',
+
+  /** Cambiar puntos límite de una jornada (sin marcadores cargados). */
+  editJourneyScoreLimit: (role: UserRole | null) =>
+    role === 'coordinador' || role === 'admin',
 } as const;

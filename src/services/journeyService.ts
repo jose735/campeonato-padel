@@ -169,6 +169,25 @@ export async function updateJourneyMatchSort(
   return mapJourneyRecordToJourney(data as JourneyRecord);
 }
 
+/**
+ * Actualiza solo el score_limit de una jornada.
+ * El caller debe garantizar que no hay marcadores cargados.
+ */
+export async function updateJourneyScoreLimit(
+  id: number,
+  scoreLimit: number,
+): Promise<Journey> {
+  const { data, error } = await supabase
+    .from(TABLE)
+    .update({ score_limit: scoreLimit })
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return mapJourneyRecordToJourney(data as JourneyRecord);
+}
+
 export async function finishJourney(id: number): Promise<Journey> {
   const { data, error } = await supabase
     .from(TABLE)

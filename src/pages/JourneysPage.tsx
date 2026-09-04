@@ -192,11 +192,16 @@ export default function JourneysPage() {
               (journey) => journey.id === activeJourneyId,
             )?.fieldsQuantity ?? 2
           }
+          scoreLimit={
+            journeys.find(
+              (journey) => journey.id === activeJourneyId,
+            )?.scoreLimit ?? 24
+          }
           mode={modalMode}
           onClose={() => setActiveJourneyId(null)}
-          onSuccess={() =>
-            fetchJourneyIdsWithMatches()
-          }
+          onSuccess={() => {
+            void handleJourneyChanged();
+          }}
         />
       )}
 

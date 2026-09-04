@@ -1,17 +1,22 @@
 import { useEffect, useMemo, useState } from "react";
-import { Search, X, Check, Loader2, Users } from "lucide-react";
+import { Search, X, Check, Loader2, Users, Target } from "lucide-react";
 import { usePlayerStore } from "@/store/player-store";
 import { setupJourneyLineup, type SeededPlayer } from "@/lib/journeySetup";
 import { replacePlayerInJourney } from "@/services/journeyLineupService";
 import { getParticipantsByJourneyId } from "@/services/journeyParticipantService";
 import { journeyHasScores } from "@/services/journeyMatchService";
+import { updateJourneyScoreLimit } from "@/services/journeyService";
 
 export type PlayerSelectionMode = "create" | "replace";
+
+const SCORE_LIMIT_OPTIONS = [16, 24, 32] as const;
 
 interface PlayerSelectionModalProps {
   journeyId: number;
   maxPlayers: number;
   fieldsQuantity: number;
+  /** Puntos límite actuales de la jornada (solo relevante en modo replace). */
+  scoreLimit?: number;
   mode?: PlayerSelectionMode;
   onClose: () => void;
   onSuccess: () => void;
@@ -34,6 +39,7 @@ export default function PlayerSelectionModal({
   journeyId,
   maxPlayers,
   fieldsQuantity,
+  scoreLimit: initialScoreLimit = 24,
   mode = "create",
   onClose,
   onSuccess,
@@ -53,6 +59,10 @@ export default function PlayerSelectionModal({
   const [search, setSearch] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /** Puntos límite editables solo en modo replace (si no hay marcadores). */
+  const [scoreLimit, setScoreLimit] = useState(initialScoreLimit);
+  const [originalScoreLimit, setOriginalScoreLimit] =
+    useState(initialScoreLimit);
 
   useEffect(() => {
     fetchPlayers();
@@ -68,6 +78,8 @@ export default function PlayerSelectionModal({
       setIsLoadingParticipants(true);
       setError(null);
       setHasScores(false);
+      setScoreLimit(initialScoreLimit);
+      setOriginalScoreLimit(initialScoreLimit);
       try {
         const [participants, scoresLoaded] = await Promise.all([
           getParticipantsByJourneyId(journeyId),
@@ -89,7 +101,7 @@ export default function PlayerSelectionModal({
 
         if (scoresLoaded) {
           setError(
-            "No se puede reemplazar un jugador porque la jornada ya tiene marcadores cargados.",
+            "No se puede editar jugadores ni puntos porque la jornada ya tiene marcadores cargados.",
           );
         }
       } catch (err) {
@@ -104,7 +116,7 @@ export default function PlayerSelectionModal({
     return () => {
       cancelled = true;
     };
-  }, [isReplace, journeyId]);
+  }, [isReplace, journeyId, initialScoreLimit]);
 
   const toggleSelection = (playerId: number) => {
     setSelectedIds((prev) => {
@@ -207,8 +219,11 @@ export default function PlayerSelectionModal({
     removedIds.length === 1 &&
     addedIds.length === 1;
 
+  const scoreLimitChanged =
+    isReplace && scoreLimit !== originalScoreLimit && !hasScores;
+
   const canSubmit = isReplace
-    ? isValidReplace && !hasScores
+    ? !hasScores && (isValidReplace || scoreLimitChanged)
     : isValidCount;
 
   const getPlayerName = (playerId: number): string => {
@@ -219,7 +234,7 @@ export default function PlayerSelectionModal({
   const handleSubmit = async () => {
     if (!canSubmit) return;
 
-    if (isReplace) {
+    if (isReplace && isValidReplace) {
       const oldName = getPlayerName(removedIds[0]);
       const newName = getPlayerName(addedIds[0]);
       const confirmed = window.confirm(
@@ -236,11 +251,16 @@ export default function PlayerSelectionModal({
 
     try {
       if (isReplace) {
-        await replacePlayerInJourney(
-          journeyId,
-          removedIds[0],
-          addedIds[0],
-        );
+        if (isValidReplace) {
+          await replacePlayerInJourney(
+            journeyId,
+            removedIds[0],
+            addedIds[0],
+          );
+        }
+        if (scoreLimitChanged) {
+          await updateJourneyScoreLimit(journeyId, scoreLimit);
+        }
       } else {
         const seededPlayers: SeededPlayer[] = selectedIds.map((playerId) => ({
           playerId,
@@ -259,6 +279,24 @@ export default function PlayerSelectionModal({
     }
   };
 
+  const submitLabel = (() => {
+    if (isSubmitting) {
+      if (isReplace) {
+        if (isValidReplace && scoreLimitChanged) return "Guardando...";
+        if (isValidReplace) return "Reemplazando...";
+        return "Guardando...";
+      }
+      return "Generando...";
+    }
+    if (isReplace) {
+      if (isValidReplace && scoreLimitChanged) return "Guardar cambios";
+      if (isValidReplace) return "Guardar reemplazo";
+      if (scoreLimitChanged) return "Guardar puntos";
+      return "Guardar";
+    }
+    return "Generar jornada";
+  })();
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
       <div className="flex max-h-[85vh] w-full max-w-md flex-col rounded-xl border border-neutral-200 bg-white shadow-lg">
@@ -266,11 +304,11 @@ export default function PlayerSelectionModal({
         <div className="flex items-center justify-between border-b border-neutral-100 px-5 py-4">
           <div>
             <h3 className="text-base font-semibold text-neutral-800">
-              {isReplace ? "Reemplazar jugador" : "Seleccionar jugadores"}
+              {isReplace ? "Editar jornada" : "Seleccionar jugadores"}
             </h3>
             <p className="text-sm text-neutral-500">
               {isReplace
-                ? "Desmarcá al jugador que se ausenta y seleccioná al reemplazo. El seed se hereda."
+                ? "Podés reemplazar un jugador y/o cambiar los puntos límite (si no hay marcadores)."
                 : `Debés seleccionar exactamente ${maxPlayers} jugadores.`}
             </p>
           </div>
@@ -282,6 +320,49 @@ export default function PlayerSelectionModal({
             <X size={18} />
           </button>
         </div>
+
+        {/* Puntos límite — solo en modo replace */}
+        {isReplace && (
+          <div className="border-b border-neutral-100 px-5 py-3">
+            <label className="mb-1.5 flex items-center gap-1.5 text-sm font-medium text-neutral-700">
+              <Target size={14} className="text-neutral-500" />
+              Puntos límite por partido
+            </label>
+            <div className="flex gap-2">
+              {SCORE_LIMIT_OPTIONS.map((opt) => {
+                const selected = scoreLimit === opt;
+                const disabled = hasScores || isLoadingParticipants;
+                return (
+                  <button
+                    key={opt}
+                    type="button"
+                    disabled={disabled}
+                    onClick={() => setScoreLimit(opt)}
+                    className={`flex-1 rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
+                      selected
+                        ? "border-primary-500 bg-primary-50 text-primary-800 ring-1 ring-primary-200"
+                        : disabled
+                          ? "border-neutral-200 bg-neutral-50 text-neutral-400"
+                          : "border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-50"
+                    }`}
+                  >
+                    {opt} pts
+                  </button>
+                );
+              })}
+            </div>
+            {hasScores && (
+              <p className="mt-1.5 text-xs text-neutral-500">
+                No se puede cambiar: ya hay marcadores cargados.
+              </p>
+            )}
+            {!hasScores && scoreLimitChanged && (
+              <p className="mt-1.5 text-xs text-accent-700">
+                Se actualizará de {originalScoreLimit} a {scoreLimit} pts.
+              </p>
+            )}
+          </div>
+        )}
 
         {/* Buscador */}
         <div className="border-b border-neutral-100 px-5 py-3">
@@ -384,6 +465,10 @@ export default function PlayerSelectionModal({
                 <span className="text-danger-600">
                   Marcadores ya cargados
                 </span>
+              ) : isValidReplace ? (
+                <span className="text-success-700">Listo para guardar</span>
+              ) : scoreLimitChanged ? (
+                <span className="text-success-700">Puntos listos para guardar</span>
               ) : removedIds.length === 0 ? (
                 <span className="text-neutral-500">
                   Desmarcá al jugador a reemplazar
@@ -393,7 +478,7 @@ export default function PlayerSelectionModal({
                   Seleccioná el jugador de reemplazo
                 </span>
               ) : (
-                <span className="text-success-700">Listo para guardar</span>
+                <span className="text-neutral-500">Ajustá la selección</span>
               )
             ) : (
               selectedIds.length > 0 &&
@@ -424,13 +509,7 @@ export default function PlayerSelectionModal({
               ) : (
                 <Check size={14} />
               )}
-              {isSubmitting
-                ? isReplace
-                  ? "Reemplazando..."
-                  : "Generando..."
-                : isReplace
-                  ? "Guardar reemplazo"
-                  : "Generar jornada"}
+              {submitLabel}
             </button>
           </div>
         </div>
