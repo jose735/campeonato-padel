@@ -18,6 +18,7 @@ const JourneysPage = lazy(() => import("@/pages/JourneysPage"));
 const TournamentsPage = lazy(() => import("@/pages/TournamentsPage"));
 const JourneyDetailPage = lazy(() => import("@/pages/JourneyDetailPage"));
 const RankingPage = lazy(() => import("@/pages/RankingPage"));
+const PodiosPage = lazy(() => import("@/pages/PodiosPage"));
 
 function PageFallback() {
   return (
@@ -77,6 +78,14 @@ const router = createBrowserRouter([
             element: (
               <LazyPage>
                 <RankingPage />
+              </LazyPage>
+            ),
+          },
+          {
+            path: "podios",
+            element: (
+              <LazyPage>
+                <PodiosPage />
               </LazyPage>
             ),
           },

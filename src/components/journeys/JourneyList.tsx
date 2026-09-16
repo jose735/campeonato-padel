@@ -132,7 +132,7 @@ export default function JourneyList({
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="font-medium text-neutral-800">
                       {getTournamentName(journey.tournamentId)}{" "}
-                      {journey.journeyMatchSort ?? ""}
+                      {journey.journeyMatchSort ? `(P${journey.journeyMatchSort})` : ""}
                     </p>
 
                     {isFinished && (

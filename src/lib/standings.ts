@@ -13,6 +13,10 @@ export type StandingRow = {
   pointsFor: number; // Puntos a favor
   pointsAgainst: number; // Puntos en contra
   difference: number; // PF - PC
+  /** Factor de asistencia (solo tabla ponderada). 1 | 0.8 | 0.6 */
+  fac?: number;
+  /** PTS/P × FAC (solo tabla ponderada). */
+  pointsFinal?: number;
 };
 
 /**
@@ -238,25 +242,63 @@ export function calculateStandings(
   });
 }
 /**
+ * Calcula el factor de asistencia (FAC) según % de jornadas jugadas
+ * respecto al total de jornadas del torneo (días únicos).
+ * ≥40% → 1 | ≥20% y <40% → 0.8 | <20% → 0.6
+ */
+export function computeFac(
+  journeysPlayed: number,
+  totalUniqueJourneyDays: number,
+): number {
+  if (totalUniqueJourneyDays <= 0) return 1;
+  const ratio = journeysPlayed / totalUniqueJourneyDays;
+  if (ratio >= 0.4) return 1;
+  if (ratio >= 0.2) return 0.8;
+  return 0.6;
+}
+
+/**
  * Convierte standings generales a tabla ponderada:
  * pts y diferencia divididos por partidos jugados.
+ * Si se indica totalUniqueJourneyDays, calcula FAC y PTS/F y ordena por PTS/F.
  * Solo incluye jugadores con al menos 1 partido.
  */
-export function buildWeightedStandings(standings: StandingRow[]): StandingRow[] {
+export function buildWeightedStandings(
+  standings: StandingRow[],
+  totalUniqueJourneyDays?: number,
+): StandingRow[] {
+  const hasFac =
+    typeof totalUniqueJourneyDays === "number" && totalUniqueJourneyDays >= 0;
+
   const weighted = standings
     .filter((row) => row.matchesPlayed > 0)
-    .map((row) => ({
-      ...row,
-      points: row.points / row.matchesPlayed,
-      difference: row.difference / row.matchesPlayed,
-    }));
+    .map((row) => {
+      const pointsPerMatch = row.points / row.matchesPlayed;
+      const differencePerMatch = row.difference / row.matchesPlayed;
+      const fac = hasFac
+        ? computeFac(row.journeysPlayed, totalUniqueJourneyDays)
+        : undefined;
+      const pointsFinal =
+        fac !== undefined ? pointsPerMatch * fac : undefined;
+
+      return {
+        ...row,
+        points: pointsPerMatch,
+        difference: differencePerMatch,
+        fac,
+        pointsFinal,
+      };
+    });
 
   weighted.sort((a, b) => {
-    if (b.points !== a.points) return b.points - a.points;
+    // Orden principal: PTS/F si existe; si no, PTS/P
+    const aPrimary = a.pointsFinal ?? a.points;
+    const bPrimary = b.pointsFinal ?? b.points;
+    if (bPrimary !== aPrimary) return bPrimary - aPrimary;
     if (b.difference !== a.difference) return b.difference - a.difference;
     if (b.wins !== a.wins) return b.wins - a.wins;
     if (b.draws !== a.draws) return b.draws - a.draws;
-    return a.playerName.localeCompare(b.playerName, 'es');
+    return a.playerName.localeCompare(b.playerName, "es");
   });
 
   let position = 1;
@@ -267,8 +309,11 @@ export function buildWeightedStandings(standings: StandingRow[]): StandingRow[] 
     }
 
     const previous = weighted[index - 1];
+    const samePrimary =
+      (row.pointsFinal ?? row.points) ===
+      (previous.pointsFinal ?? previous.points);
     const sameRankingCriteria =
-      row.points === previous.points &&
+      samePrimary &&
       row.difference === previous.difference &&
       row.wins === previous.wins &&
       row.draws === previous.draws;

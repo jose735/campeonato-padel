@@ -6,6 +6,7 @@ import {
   Trophy,
   CalendarDays,
   BarChart3,
+  Medal,
   LogOut,
   ShieldCheck,
   UserRound,
@@ -25,6 +26,7 @@ const navItems: NavItem[] = [
   { label: 'Torneos', path: '/torneos', icon: Trophy },
   { label: 'Jornadas', path: '/jornadas', icon: CalendarDays },
   { label: 'Ranking', path: '/ranking', icon: BarChart3 },
+  { label: 'Podios', path: '/podios', icon: Medal },
 ];
 
 interface SidebarProps {

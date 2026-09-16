@@ -38,6 +38,12 @@ function PositionBadge({ position }: { position: number }) {
   );
 }
 
+function formatFac(fac: number | undefined): string {
+  if (fac === undefined) return "—";
+  if (fac === 1) return "1";
+  return fac.toFixed(1);
+}
+
 export default function JourneyStandings({
   standings,
   showDecimals = false,
@@ -70,19 +76,43 @@ export default function JourneyStandings({
                 Jugador
               </th>
 
-              {/* Pts */}
-              <th className="w-14 whitespace-nowrap px-1 py-3 text-center text-xs font-semibold uppercase tracking-wide text-neutral-400">
-                {isPonderada ? "Pts/P" : "Pts"}
-              </th>
+              {/* PTS/F — solo ponderada, primera métrica */}
+              {isPonderada && (
+                <th className="w-14 whitespace-nowrap px-1 py-3 text-center text-xs font-semibold uppercase tracking-wide text-neutral-400">
+                  Pts/F
+                </th>
+              )}
 
-              {/* Dif */}
+              {/* Pts (general) o se muestra más abajo en ponderada */}
+              {!isPonderada && (
+                <th className="w-14 whitespace-nowrap px-1 py-3 text-center text-xs font-semibold uppercase tracking-wide text-neutral-400">
+                  Pts
+                </th>
+              )}
+
+              {/* Dif / Dif/P */}
               <th className="w-14 whitespace-nowrap px-1 py-3 text-center text-xs font-semibold uppercase tracking-wide text-neutral-400">
                 {isPonderada ? "Dif/P" : "Dif"}
               </th>
 
+              {/* JJ — solo ponderada */}
               {isPonderada && (
                 <th className="w-12 whitespace-nowrap px-1.5 py-3 text-center text-xs font-semibold uppercase tracking-wide text-neutral-400">
                   JJ
+                </th>
+              )}
+
+              {/* PTS/P — solo ponderada; oculta en móvil vertical */}
+              {isPonderada && (
+                <th className="hidden w-14 whitespace-nowrap px-1 py-3 text-center text-xs font-semibold uppercase tracking-wide text-neutral-400 min-[480px]:table-cell">
+                  Pts/P
+                </th>
+              )}
+
+              {/* FAC — solo ponderada; oculta en móvil vertical */}
+              {isPonderada && (
+                <th className="hidden w-12 whitespace-nowrap px-1.5 py-3 text-center text-xs font-semibold uppercase tracking-wide text-neutral-400 min-[480px]:table-cell">
+                  Fac
                 </th>
               )}
 
@@ -141,14 +171,25 @@ export default function JourneyStandings({
                     </span>
                   </td>
 
-                  {/* Pts */}
-                  <td className="w-14 whitespace-nowrap px-1 py-3 text-center">
-                    <span className="inline-flex min-w-8 items-center justify-center rounded-md bg-primary-50 px-1.5 py-0.5 text-sm font-bold tabular-nums text-primary-700">
-                      {showDecimals ? row.points.toFixed(2) : row.points}
-                    </span>
-                  </td>
+                  {/* PTS/F — solo ponderada */}
+                  {isPonderada && (
+                    <td className="w-14 whitespace-nowrap px-1 py-3 text-center">
+                      <span className="inline-flex min-w-8 items-center justify-center rounded-md bg-primary-50 px-1.5 py-0.5 text-sm font-bold tabular-nums text-primary-700">
+                        {(row.pointsFinal ?? row.points).toFixed(2)}
+                      </span>
+                    </td>
+                  )}
 
-                  {/* Dif */}
+                  {/* Pts — solo general */}
+                  {!isPonderada && (
+                    <td className="w-14 whitespace-nowrap px-1 py-3 text-center">
+                      <span className="inline-flex min-w-8 items-center justify-center rounded-md bg-primary-50 px-1.5 py-0.5 text-sm font-bold tabular-nums text-primary-700">
+                        {row.points}
+                      </span>
+                    </td>
+                  )}
+
+                  {/* Dif / Dif/P */}
                   <td
                     className={`w-14 whitespace-nowrap px-1 py-3 text-center font-medium tabular-nums ${
                       row.difference > 0
@@ -166,6 +207,20 @@ export default function JourneyStandings({
                   {isPonderada && (
                     <td className="w-12 whitespace-nowrap px-1.5 py-3 text-center font-medium tabular-nums text-neutral-600">
                       {row.journeysPlayed}
+                    </td>
+                  )}
+
+                  {/* PTS/P — solo ponderada; oculta en móvil vertical */}
+                  {isPonderada && (
+                    <td className="hidden w-14 whitespace-nowrap px-1 py-3 text-center tabular-nums text-neutral-600 min-[480px]:table-cell">
+                      {row.points.toFixed(2)}
+                    </td>
+                  )}
+
+                  {/* FAC — solo ponderada; oculta en móvil vertical */}
+                  {isPonderada && (
+                    <td className="hidden w-12 whitespace-nowrap px-1.5 py-3 text-center font-medium tabular-nums text-neutral-600 min-[480px]:table-cell">
+                      {formatFac(row.fac)}
                     </td>
                   )}
 

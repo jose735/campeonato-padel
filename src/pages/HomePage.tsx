@@ -1,5 +1,12 @@
 import { Link } from 'react-router-dom';
-import { CalendarDays, Trophy, Users, BarChart3, ArrowRight } from 'lucide-react';
+import {
+  CalendarDays,
+  Trophy,
+  Users,
+  BarChart3,
+  Medal,
+  ArrowRight,
+} from 'lucide-react';
 import { useAuthStore } from '@/store/auth-store';
 import Card from '@/components/ui/Card';
 
@@ -15,6 +22,12 @@ const links = [
     description: 'Ranking general del torneo con todas las jornadas acumuladas.',
     to: '/ranking',
     icon: BarChart3,
+  },
+  {
+    title: 'Podios',
+    description: 'Top 3 de cada jornada en formato de podio olímpico.',
+    to: '/podios',
+    icon: Medal,
   },
   {
     title: 'Jugadores',

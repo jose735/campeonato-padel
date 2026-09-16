@@ -6,7 +6,11 @@ import {
   getMatchesByTournamentId,
   getMatchesForHistoricalTable,
 } from "@/services/journeyMatchService";
-import { getCurrentTournamentId } from "@/services/journeyService";
+import {
+  getCurrentTournamentId,
+  getUniqueJourneyDayCountByTournamentId,
+  getUniqueJourneyDayCountForHistorical,
+} from "@/services/journeyService";
 import { calculateStandings, buildWeightedStandings } from "@/lib/standings";
 import { isDeletedTournamentId } from "@/lib/constants";
 import JourneyStandings from "@/components/journeys/JourneyStandings";
@@ -37,6 +41,7 @@ export default function RankingPage() {
     null,
   );
   const [matches, setMatches] = useState<JourneyMatch[]>([]);
+  const [uniqueJourneyDays, setUniqueJourneyDays] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [mode, setMode] = useState<RankingMode>("ponderada");
 
@@ -82,13 +87,26 @@ export default function RankingPage() {
         setIsLoading(true);
       }
       try {
-        const data = isHistorical
-          ? await getMatchesForHistoricalTable()
-          : await getMatchesByTournamentId(selectedTournamentId as number);
-        if (!cancelled) setMatches(data);
+        const [matchData, dayCount] = await Promise.all([
+          isHistorical
+            ? getMatchesForHistoricalTable()
+            : getMatchesByTournamentId(selectedTournamentId as number),
+          isHistorical
+            ? getUniqueJourneyDayCountForHistorical()
+            : getUniqueJourneyDayCountByTournamentId(
+                selectedTournamentId as number,
+              ),
+        ]);
+        if (!cancelled) {
+          setMatches(matchData);
+          setUniqueJourneyDays(dayCount);
+        }
       } catch (error) {
         console.error(error);
-        if (!cancelled) setMatches([]);
+        if (!cancelled) {
+          setMatches([]);
+          setUniqueJourneyDays(0);
+        }
       } finally {
         if (!cancelled && isFirstLoad) {
           setIsLoading(false);
@@ -137,10 +155,10 @@ export default function RankingPage() {
 
   const standings = useMemo(() => {
     if (mode === "ponderada") {
-      return buildWeightedStandings(generalStandings);
+      return buildWeightedStandings(generalStandings, uniqueJourneyDays);
     }
     return generalStandings;
-  }, [mode, generalStandings]);
+  }, [mode, generalStandings, uniqueJourneyDays]);
 
   return (
     <div className="flex flex-col gap-8 lg:gap-6">
@@ -209,10 +227,10 @@ export default function RankingPage() {
             isHistorical
               ? mode === "general"
                 ? "Tabla histórica general"
-                : "Tabla histórica ponderada"
+                : `Tabla histórica ponderada · ${uniqueJourneyDays} jornada${uniqueJourneyDays === 1 ? "" : "s"}`
               : mode === "general"
                 ? "Tabla general"
-                : "Tabla ponderada"
+                : `Tabla ponderada · ${uniqueJourneyDays} jornada${uniqueJourneyDays === 1 ? "" : "s"}`
           }
         >
           <JourneyStandings

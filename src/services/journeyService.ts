@@ -58,6 +58,63 @@ export async function getJourneysByTournamentId(tournamentId: number): Promise<J
   return (data as JourneyRecord[]).map(mapJourneyRecordToJourney);
 }
 
+/**
+ * Cantidad de jornadas "efectivas" de un torneo: jornadas creadas
+ * contando como una sola las que comparten la misma journey_date.
+ * Incluye abiertas y finalizadas (todas las creadas del torneo).
+ */
+export async function getUniqueJourneyDayCountByTournamentId(
+  tournamentId: number,
+): Promise<number> {
+  if (
+    typeof tournamentId !== "number" ||
+    !Number.isFinite(tournamentId) ||
+    tournamentId <= 0 ||
+    tournamentId === DELETED_TOURNAMENT_ID
+  ) {
+    return 0;
+  }
+
+  const { data, error } = await supabase
+    .from(TABLE)
+    .select("journey_date")
+    .eq("tournament_id", tournamentId);
+
+  if (error) throw error;
+  const dates = new Set(
+    (data as { journey_date: string }[] | null)?.map((r) => r.journey_date) ??
+      [],
+  );
+  return dates.size;
+}
+
+/**
+ * Cantidad de jornadas efectivas (días únicos) de todos los torneos
+ * con include_in_historical = true. Usado en Tabla Histórica ponderada.
+ */
+export async function getUniqueJourneyDayCountForHistorical(): Promise<number> {
+  const { data: tournaments, error: tournamentsError } = await supabase
+    .from("tournaments")
+    .select("id")
+    .eq("include_in_historical", true);
+
+  if (tournamentsError) throw tournamentsError;
+  const tournamentIds = (tournaments ?? []).map((t) => t.id as number);
+  if (tournamentIds.length === 0) return 0;
+
+  const { data, error } = await supabase
+    .from(TABLE)
+    .select("journey_date")
+    .in("tournament_id", tournamentIds);
+
+  if (error) throw error;
+  const dates = new Set(
+    (data as { journey_date: string }[] | null)?.map((r) => r.journey_date) ??
+      [],
+  );
+  return dates.size;
+}
+
 export async function getJourneyById(id: number): Promise<Journey | null> {
   const { data, error } = await supabase
     .from(TABLE)
