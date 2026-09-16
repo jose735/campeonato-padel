@@ -139,14 +139,26 @@ export default function PodiosPage() {
   const podiumItems: JourneyPodiumData[] = useMemo(() => {
     if (journeys.length === 0) return [];
 
-    // Numeración estable por fecha de jornada (cronológica ascendente)
-    const chronological = [...journeys].sort((a, b) => {
+    // Numeración por día único (journey_date): varias jornadas el mismo día
+    // comparten el mismo número y se diferencian con journey_match_sort.
+    const uniqueDatesAsc = [
+      ...new Set(
+        [...journeys]
+          .map((j) => j.journeyDate)
+          .sort((a, b) => a.localeCompare(b)),
+      ),
+    ];
+    const numberByDate = new Map<string, number>();
+    uniqueDatesAsc.forEach((date, i) => numberByDate.set(date, i + 1));
+
+    const compareJourneys = (a: Journey, b: Journey): number => {
       const byDate = a.journeyDate.localeCompare(b.journeyDate);
       if (byDate !== 0) return byDate;
+      const sortA = a.journeyMatchSort ?? 0;
+      const sortB = b.journeyMatchSort ?? 0;
+      if (sortA !== sortB) return sortA - sortB;
       return a.id - b.id;
-    });
-    const numberById = new Map<number, number>();
-    chronological.forEach((j, i) => numberById.set(j.id, i + 1));
+    };
 
     const withTop3 = journeys
       .map((journey) => {
@@ -157,17 +169,14 @@ export default function PodiosPage() {
         const top3 = standings.slice(0, 3);
         return {
           journey,
-          journeyNumber: numberById.get(journey.id) ?? 0,
+          journeyNumber: numberByDate.get(journey.journeyDate) ?? 0,
           top3,
         };
       })
       .filter((item) => item.top3.length > 0);
 
-    // Orden de visualización por journey_date
     withTop3.sort((a, b) => {
-      const byDate = a.journey.journeyDate.localeCompare(b.journey.journeyDate);
-      const tie = a.journey.id - b.journey.id;
-      const cmp = byDate !== 0 ? byDate : tie;
+      const cmp = compareJourneys(a.journey, b.journey);
       return sortOrder === "desc" ? -cmp : cmp;
     });
 
@@ -278,15 +287,22 @@ export default function PodiosPage() {
         </div>
       ) : (
         <div className="flex flex-col gap-3 sm:gap-4">
-          {pageItems.map(({ journey, journeyNumber, top3 }) => (
-            <JourneyPodium
-              key={journey.id}
-              journeyDate={journey.journeyDate}
-              label={`Jornada ${journeyNumber}`}
-              top3={top3}
-              playersById={playersById}
-            />
-          ))}
+          {pageItems.map(({ journey, journeyNumber, top3 }) => {
+            const sortPart =
+              journey.journeyMatchSort != null
+                ? ` (P${journey.journeyMatchSort})`
+                : "";
+            return (
+              <JourneyPodium
+                key={journey.id}
+                journeyId={journey.id}
+                journeyDate={journey.journeyDate}
+                label={`Jornada ${journeyNumber}${sortPart}`}
+                top3={top3}
+                playersById={playersById}
+              />
+            );
+          })}
 
           <Pagination
             page={page}

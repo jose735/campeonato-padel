@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import type { StandingRow } from "@/lib/standings";
 import type { Player } from "@/types";
 import PlayerAvatar from "@/components/players/PlayerAvatar";
@@ -5,6 +6,7 @@ import PlayerAvatar from "@/components/players/PlayerAvatar";
 type PodiumPlace = 1 | 2 | 3;
 
 interface JourneyPodiumProps {
+  journeyId: number;
   journeyDate: string;
   /** Posición de jornada en el torneo (opcional, p. ej. "Jornada 3") */
   label?: string;
@@ -92,7 +94,6 @@ function PodiumSlot({
           <PlayerAvatar
             player={avatarPlayer}
             size="sm"
-            enablePreview={Boolean(avatarPlayer.photoUrl)}
             className="sm:!h-10 sm:!w-10 sm:!text-sm"
           />
           <span
@@ -139,6 +140,7 @@ function PodiumSlot({
  * Podio estilo olímpico compacto: 2º (izq) · 1º (centro, más alto) · 3º (der).
  */
 export default function JourneyPodium({
+  journeyId,
   journeyDate,
   label,
   top3,
@@ -149,7 +151,11 @@ export default function JourneyPodium({
   const slot3 = top3[2];
 
   return (
-    <div className="overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-sm">
+    <Link
+      to={`/jornadas/${journeyId}`}
+      className="block overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-sm transition-shadow hover:border-primary-200 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2"
+      aria-label={`Ver detalle de ${label ?? "jornada"} del ${journeyDate}`}
+    >
       <div className="flex items-baseline justify-between gap-2 border-b border-neutral-100 px-3 py-2 sm:px-4 sm:py-2.5">
         <h3 className="text-xs font-semibold text-neutral-800 sm:text-sm">
           {label ?? `Jornada · ${journeyDate}`}
@@ -179,6 +185,6 @@ export default function JourneyPodium({
         />
       </div>
       <div className="h-1.5 bg-neutral-200 sm:h-2" />
-    </div>
+    </Link>
   );
 }
