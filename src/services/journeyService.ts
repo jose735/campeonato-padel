@@ -59,9 +59,8 @@ export async function getJourneysByTournamentId(tournamentId: number): Promise<J
 }
 
 /**
- * Cantidad de jornadas "efectivas" de un torneo: jornadas creadas
- * contando como una sola las que comparten la misma journey_date.
- * Incluye abiertas y finalizadas (todas las creadas del torneo).
+ * Cantidad de jornadas "efectivas" de un torneo para FAC / título ponderado:
+ * solo jornadas finalizadas, contando como una sola las del mismo journey_date.
  */
 export async function getUniqueJourneyDayCountByTournamentId(
   tournamentId: number,
@@ -78,7 +77,8 @@ export async function getUniqueJourneyDayCountByTournamentId(
   const { data, error } = await supabase
     .from(TABLE)
     .select("journey_date")
-    .eq("tournament_id", tournamentId);
+    .eq("tournament_id", tournamentId)
+    .eq("status", "finished");
 
   if (error) throw error;
   const dates = new Set(
@@ -89,8 +89,8 @@ export async function getUniqueJourneyDayCountByTournamentId(
 }
 
 /**
- * Cantidad de jornadas efectivas (días únicos) de todos los torneos
- * con include_in_historical = true. Usado en Tabla Histórica ponderada.
+ * Cantidad de jornadas efectivas (días únicos, solo finalizadas) de todos los
+ * torneos con include_in_historical = true. Usado en Tabla Histórica ponderada.
  */
 export async function getUniqueJourneyDayCountForHistorical(): Promise<number> {
   const { data: tournaments, error: tournamentsError } = await supabase
@@ -105,7 +105,8 @@ export async function getUniqueJourneyDayCountForHistorical(): Promise<number> {
   const { data, error } = await supabase
     .from(TABLE)
     .select("journey_date")
-    .in("tournament_id", tournamentIds);
+    .in("tournament_id", tournamentIds)
+    .eq("status", "finished");
 
   if (error) throw error;
   const dates = new Set(

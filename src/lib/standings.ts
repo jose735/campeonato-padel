@@ -253,8 +253,8 @@ export function computeFac(
   if (totalUniqueJourneyDays <= 0) return 1;
   const ratio = journeysPlayed / totalUniqueJourneyDays;
   if (ratio >= 0.4) return 1;
-  if (ratio >= 0.2) return 0.8;
-  return 0.6;
+  if (ratio >= 0.2) return 0.75;
+  return 0.5;
 }
 
 /**

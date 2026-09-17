@@ -41,7 +41,7 @@ function PositionBadge({ position }: { position: number }) {
 function formatFac(fac: number | undefined): string {
   if (fac === undefined) return "—";
   if (fac === 1) return "1";
-  return fac === 0.8 ? ".8" : ".6";
+  return fac === 0.75 ? ".75" : ".5";
 }
 
 export default function JourneyStandings({
