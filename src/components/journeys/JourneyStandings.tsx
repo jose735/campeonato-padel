@@ -46,6 +46,8 @@ function PositionBadge({ position }: { position: number }) {
 function formatFac(fac: number | undefined): string {
   if (fac === undefined) return "—";
   if (fac === 1) return "1";
+  if (fac === 0.75) return ".75";
+  if (fac === 0.5) return ".5";
   return fac.toFixed(1);
 }
 
@@ -247,7 +249,9 @@ export default function JourneyStandings({
                       }`}
                     >
                       {row.difference > 0 ? "+" : ""}
-                      {showDecimals ? row.difference.toFixed(2) : row.difference}
+                      {showDecimals
+                        ? row.difference.toFixed(2)
+                        : row.difference}
                     </td>
 
                     {/* JJ — solo ponderada; click abre historial */}

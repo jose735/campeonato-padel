@@ -59,6 +59,8 @@ export default function PlayerSelectionModal({
   const [search, setSearch] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /** Mensaje breve de éxito al guardar en modo replace (el modal permanece abierto). */
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   /** Puntos límite editables solo en modo replace (si no hay marcadores). */
   const [scoreLimit, setScoreLimit] = useState(initialScoreLimit);
   const [originalScoreLimit, setOriginalScoreLimit] =
@@ -119,6 +121,7 @@ export default function PlayerSelectionModal({
   }, [isReplace, journeyId, initialScoreLimit]);
 
   const toggleSelection = (playerId: number) => {
+    setSuccessMessage(null);
     setSelectedIds((prev) => {
       const isChecked = prev.includes(playerId);
 
@@ -240,27 +243,58 @@ export default function PlayerSelectionModal({
       const confirmed = window.confirm(
         `¿Confirmás el reemplazo?\n\n` +
           `Se va a reemplazar a "${oldName}" por "${newName}".\n` +
-          `El nuevo jugador heredará el seed y ocupará su lugar en todas las rondas.\n\n` +
+          `El nuevo jugador heredará el seed y ocupará su lugar en todas las rondas ya generadas (sin regenerar enfrentamientos).\n\n` +
           `Esta acción no se puede deshacer fácilmente.`,
       );
       if (!confirmed) return;
     }
 
     setError(null);
+    setSuccessMessage(null);
     setIsSubmitting(true);
 
     try {
       if (isReplace) {
-        if (isValidReplace) {
-          await replacePlayerInJourney(
-            journeyId,
-            removedIds[0],
-            addedIds[0],
-          );
+        const didReplace = isValidReplace;
+        const didScore = scoreLimitChanged;
+
+        if (didReplace) {
+          await replacePlayerInJourney(journeyId, removedIds[0], addedIds[0]);
         }
-        if (scoreLimitChanged) {
+        if (didScore) {
           await updateJourneyScoreLimit(journeyId, scoreLimit);
         }
+
+        // Refrescar participantes en el modal para permitir otro reemplazo
+        // sin cerrar. Las rondas no se regeneran: solo se actualizó el player_id.
+        const participants = await getParticipantsByJourneyId(journeyId);
+        const ids = participants.map((p) => p.playerId);
+        const seedMapNext = new Map<number, number>();
+        participants.forEach((p) => {
+          if (p.seed != null) seedMapNext.set(p.playerId, p.seed);
+        });
+        setOriginalIds(ids);
+        setSelectedIds(ids);
+        setFixedSeedMap(seedMapNext);
+        setOriginalScoreLimit(scoreLimit);
+        setSearch("");
+
+        if (didReplace && didScore) {
+          setSuccessMessage(
+            "Reemplazo y puntos límite guardados. Podés seguir editando o cerrar.",
+          );
+        } else if (didReplace) {
+          setSuccessMessage(
+            "Jugador reemplazado en la jornada y en las rondas existentes. Podés seguir reemplazando o cerrar.",
+          );
+        } else {
+          setSuccessMessage(
+            "Puntos límite actualizados. Podés seguir editando o cerrar.",
+          );
+        }
+
+        onSuccess();
+        // En modo replace no cerramos el modal: se puede seguir reemplazando.
       } else {
         const seededPlayers: SeededPlayer[] = selectedIds.map((playerId) => ({
           playerId,
@@ -268,10 +302,10 @@ export default function PlayerSelectionModal({
         }));
 
         await setupJourneyLineup(journeyId, seededPlayers, fieldsQuantity);
-      }
 
-      onSuccess();
-      onClose();
+        onSuccess();
+        onClose();
+      }
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -308,7 +342,7 @@ export default function PlayerSelectionModal({
             </h3>
             <p className="text-sm text-neutral-500">
               {isReplace
-                ? "Podés reemplazar un jugador y/o cambiar los puntos límite (si no hay marcadores)."
+                ? "Reemplazá de a un jugador (sin regenerar rondas) y/o cambiá los puntos límite. El modal no se cierra al guardar."
                 : `Debés seleccionar exactamente ${maxPlayers} jugadores.`}
             </p>
           </div>
@@ -337,7 +371,10 @@ export default function PlayerSelectionModal({
                     key={opt}
                     type="button"
                     disabled={disabled}
-                    onClick={() => setScoreLimit(opt)}
+                    onClick={() => {
+                      setSuccessMessage(null);
+                      setScoreLimit(opt);
+                    }}
                     className={`flex-1 rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
                       selected
                         ? "border-primary-500 bg-primary-50 text-primary-800 ring-1 ring-primary-200"
@@ -462,13 +499,13 @@ export default function PlayerSelectionModal({
             </span>
             {isReplace ? (
               hasScores ? (
-                <span className="text-danger-600">
-                  Marcadores ya cargados
-                </span>
+                <span className="text-danger-600">Marcadores ya cargados</span>
               ) : isValidReplace ? (
                 <span className="text-success-700">Listo para guardar</span>
               ) : scoreLimitChanged ? (
-                <span className="text-success-700">Puntos listos para guardar</span>
+                <span className="text-success-700">
+                  Puntos listos para guardar
+                </span>
               ) : removedIds.length === 0 ? (
                 <span className="text-neutral-500">
                   Desmarcá al jugador a reemplazar
@@ -491,13 +528,16 @@ export default function PlayerSelectionModal({
           </div>
 
           {error && <p className="mb-3 text-sm text-danger-600">{error}</p>}
+          {successMessage && (
+            <p className="mb-3 text-sm text-success-700">{successMessage}</p>
+          )}
 
           <div className="flex justify-end gap-2">
             <button
               onClick={onClose}
               className="rounded-lg px-4 py-2 text-sm font-medium text-neutral-600 hover:bg-neutral-100"
             >
-              Cancelar
+              {isReplace ? "Cerrar" : "Cancelar"}
             </button>
             <button
               onClick={handleSubmit}
