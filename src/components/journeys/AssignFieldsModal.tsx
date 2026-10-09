@@ -101,18 +101,22 @@ export default function AssignFieldsModal({
         </div>
 
         <p className="mb-4 text-sm text-neutral-500">
-          Los nuevos números de cancha se aplicarán a todas las rondas de la
-          jornada.
+          Indicá los números de cancha. Se asignarán por orden de enfrentamiento
+          en todas las rondas (1.er partido → cancha más baja, 2.º → siguiente,
+          etc.).
         </p>
 
         <div className="flex flex-col gap-3">
-          {currentFields.map((field) => (
+          {currentFields.map((field, index) => (
             <div
               key={field}
               className="flex items-center justify-between gap-3"
             >
               <label className="text-sm font-medium text-neutral-700">
-                Cancha #{field}
+                Enfrentamiento {index + 1}
+                <span className="ml-1 font-normal text-neutral-400">
+                  (ahora #{field})
+                </span>
               </label>
 
               <input

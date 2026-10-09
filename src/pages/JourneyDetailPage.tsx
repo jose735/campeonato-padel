@@ -125,6 +125,16 @@ export default function JourneyDetailPage() {
       grouped.set(match.round, list);
     }
 
+    // Dentro de cada ronda: orden por cancha (enfrentamiento 1 → cancha más baja)
+    for (const [, list] of grouped) {
+      list.sort((a, b) => {
+        const fa = a.fieldNumber ?? Number.MAX_SAFE_INTEGER;
+        const fb = b.fieldNumber ?? Number.MAX_SAFE_INTEGER;
+        if (fa !== fb) return fa - fb;
+        return a.id - b.id;
+      });
+    }
+
     return Array.from(grouped.entries()).sort(([a], [b]) => a - b);
   }, [matches]);
 
@@ -143,13 +153,42 @@ export default function JourneyDetailPage() {
   };
 
   const handleSaveFields = async (mapping: Record<number, number>) => {
-    const updates = matches.filter(
-      (match): match is typeof match & { fieldNumber: number } =>
-        match.fieldNumber !== null && mapping[match.fieldNumber] !== undefined,
+    // Números nuevos en orden ascendente → se asignan por orden de enfrentamiento
+    // en cada ronda (1.er partido → cancha más baja, etc.), sin aleatoriedad.
+    const sortedNewFields = Array.from(new Set(Object.values(mapping))).sort(
+      (a, b) => a - b,
     );
 
+    if (sortedNewFields.length === 0) return;
+
+    const byRound = new Map<number, typeof matches>();
+    for (const match of matches) {
+      const list = byRound.get(match.round) ?? [];
+      list.push(match);
+      byRound.set(match.round, list);
+    }
+
+    const updates: { match: (typeof matches)[number]; fieldNumber: number }[] =
+      [];
+
+    for (const [, roundMatches] of byRound) {
+      const ordered = [...roundMatches].sort((a, b) => {
+        const fa = a.fieldNumber ?? Number.MAX_SAFE_INTEGER;
+        const fb = b.fieldNumber ?? Number.MAX_SAFE_INTEGER;
+        if (fa !== fb) return fa - fb;
+        return a.id - b.id;
+      });
+
+      ordered.forEach((match, index) => {
+        const fieldNumber =
+          sortedNewFields[index] ?? sortedNewFields[sortedNewFields.length - 1];
+        if (match.fieldNumber === fieldNumber) return;
+        updates.push({ match, fieldNumber });
+      });
+    }
+
     await Promise.all(
-      updates.map((match) => {
+      updates.map(({ match, fieldNumber }) => {
         const payload: CreateJourneyMatchInput = {
           journeyId: match.journeyId,
           round: match.round,
@@ -160,7 +199,7 @@ export default function JourneyDetailPage() {
           scoreA: match.scoreA,
           scoreB: match.scoreB,
           pointsObtained: match.pointsObtained,
-          fieldNumber: mapping[match.fieldNumber],
+          fieldNumber,
         };
 
         return updateMatch(match.id, payload);

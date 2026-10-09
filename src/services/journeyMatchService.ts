@@ -1,7 +1,11 @@
-import { supabase } from '@/lib/supabase';
-import type { JourneyMatch, JourneyMatchRecord, CreateJourneyMatchInput } from '@/types';
+import { supabase } from "@/lib/supabase";
+import type {
+  JourneyMatch,
+  JourneyMatchRecord,
+  CreateJourneyMatchInput,
+} from "@/types";
 
-const TABLE = 'journeys_matches';
+const TABLE = "journeys_matches";
 
 function mapRecordToJourneyMatch(record: JourneyMatchRecord): JourneyMatch {
   return {
@@ -20,26 +24,37 @@ function mapRecordToJourneyMatch(record: JourneyMatchRecord): JourneyMatch {
   };
 }
 
-export async function getMatchesByJourneyId(journeyId: number): Promise<JourneyMatch[]> {
+export async function getMatchesByJourneyId(
+  journeyId: number,
+): Promise<JourneyMatch[]> {
   const { data, error } = await supabase
     .from(TABLE)
-    .select('*')
-    .eq('journey_id', journeyId)
-    .order('round', { ascending: true });
+    .select("*")
+    .eq("journey_id", journeyId)
+    .order("round", { ascending: true })
+    .order("field_number", { ascending: true });
 
   if (error) throw error;
   return (data as JourneyMatchRecord[]).map(mapRecordToJourneyMatch);
 }
 
 export async function getMatchesByTournamentId(
-  tournamentId: number
+  tournamentId: number,
 ): Promise<JourneyMatch[]> {
+  if (
+    typeof tournamentId !== "number" ||
+    !Number.isFinite(tournamentId) ||
+    tournamentId <= 0
+  ) {
+    return [];
+  }
+
   // 1) Solo jornadas finalizadas del torneo
   const { data: journeys, error: journeysError } = await supabase
-    .from('journeys')
-    .select('id')
-    .eq('tournament_id', tournamentId)
-    .eq('status', 'finished');
+    .from("journeys")
+    .select("id")
+    .eq("tournament_id", tournamentId)
+    .eq("status", "finished");
 
   if (journeysError) throw journeysError;
 
@@ -49,9 +64,9 @@ export async function getMatchesByTournamentId(
   // 2) Partidos de esas jornadas
   const { data, error } = await supabase
     .from(TABLE)
-    .select('*')
-    .in('journey_id', journeyIds)
-    .order('round', { ascending: true });
+    .select("*")
+    .in("journey_id", journeyIds)
+    .order("round", { ascending: true });
 
   if (error) throw error;
   return (data as JourneyMatchRecord[]).map(mapRecordToJourneyMatch);
@@ -63,9 +78,9 @@ export async function getMatchesByTournamentId(
  */
 export async function getMatchesForHistoricalTable(): Promise<JourneyMatch[]> {
   const { data: tournaments, error: tournamentsError } = await supabase
-    .from('tournaments')
-    .select('id')
-    .eq('include_in_historical', true);
+    .from("tournaments")
+    .select("id")
+    .eq("include_in_historical", true);
 
   if (tournamentsError) throw tournamentsError;
 
@@ -73,10 +88,10 @@ export async function getMatchesForHistoricalTable(): Promise<JourneyMatch[]> {
   if (tournamentIds.length === 0) return [];
 
   const { data: journeys, error: journeysError } = await supabase
-    .from('journeys')
-    .select('id')
-    .in('tournament_id', tournamentIds)
-    .eq('status', 'finished');
+    .from("journeys")
+    .select("id")
+    .in("tournament_id", tournamentIds)
+    .eq("status", "finished");
 
   if (journeysError) throw journeysError;
 
@@ -85,24 +100,28 @@ export async function getMatchesForHistoricalTable(): Promise<JourneyMatch[]> {
 
   const { data, error } = await supabase
     .from(TABLE)
-    .select('*')
-    .in('journey_id', journeyIds)
-    .order('round', { ascending: true });
+    .select("*")
+    .in("journey_id", journeyIds)
+    .order("round", { ascending: true });
 
   if (error) throw error;
   return (data as JourneyMatchRecord[]).map(mapRecordToJourneyMatch);
 }
 
 export async function getJourneyIdsWithMatches(): Promise<number[]> {
-  const { data, error } = await supabase.from(TABLE).select('journey_id');
+  const { data, error } = await supabase.from(TABLE).select("journey_id");
 
   if (error) throw error;
 
-  const uniqueIds = new Set((data as { journey_id: number }[]).map((row) => row.journey_id));
+  const uniqueIds = new Set(
+    (data as { journey_id: number }[]).map((row) => row.journey_id),
+  );
   return Array.from(uniqueIds);
 }
 
-export async function createJourneyMatch(input: CreateJourneyMatchInput): Promise<JourneyMatch> {
+export async function createJourneyMatch(
+  input: CreateJourneyMatchInput,
+): Promise<JourneyMatch> {
   const { data, error } = await supabase
     .from(TABLE)
     .insert({
@@ -125,7 +144,7 @@ export async function createJourneyMatch(input: CreateJourneyMatchInput): Promis
 }
 
 export async function createJourneyMatchesBulk(
-  inputs: CreateJourneyMatchInput[]
+  inputs: CreateJourneyMatchInput[],
 ): Promise<JourneyMatch[]> {
   const { data, error } = await supabase
     .from(TABLE)
@@ -141,7 +160,7 @@ export async function createJourneyMatchesBulk(
         score_b: input.scoreB,
         points_obtained: input.pointsObtained,
         field_number: input.fieldNumber,
-      }))
+      })),
     )
     .select();
 
@@ -151,7 +170,7 @@ export async function createJourneyMatchesBulk(
 
 export async function updateJourneyMatch(
   id: number,
-  input: CreateJourneyMatchInput
+  input: CreateJourneyMatchInput,
 ): Promise<JourneyMatch> {
   const { data, error } = await supabase
     .from(TABLE)
@@ -166,7 +185,7 @@ export async function updateJourneyMatch(
       points_obtained: input.pointsObtained,
       field_number: input.fieldNumber,
     })
-    .eq('id', id)
+    .eq("id", id)
     .select()
     .single();
 
@@ -175,7 +194,7 @@ export async function updateJourneyMatch(
 }
 
 export async function deleteJourneyMatch(id: number): Promise<void> {
-  const { error } = await supabase.from(TABLE).delete().eq('id', id);
+  const { error } = await supabase.from(TABLE).delete().eq("id", id);
   if (error) throw error;
 }
 
@@ -190,17 +209,17 @@ export async function replacePlayerInJourneyMatches(
   newPlayerId: number,
 ): Promise<void> {
   const columns = [
-    'player_a1_id',
-    'player_a2_id',
-    'player_b1_id',
-    'player_b2_id',
+    "player_a1_id",
+    "player_a2_id",
+    "player_b1_id",
+    "player_b2_id",
   ] as const;
 
   for (const column of columns) {
     const { error } = await supabase
       .from(TABLE)
       .update({ [column]: newPlayerId })
-      .eq('journey_id', journeyId)
+      .eq("journey_id", journeyId)
       .eq(column, oldPlayerId);
 
     if (error) throw error;
@@ -214,9 +233,9 @@ export async function replacePlayerInJourneyMatches(
 export async function journeyHasScores(journeyId: number): Promise<boolean> {
   const { data, error } = await supabase
     .from(TABLE)
-    .select('id')
-    .eq('journey_id', journeyId)
-    .or('score_a.gt.0,score_b.gt.0,points_obtained.gt.0')
+    .select("id")
+    .eq("journey_id", journeyId)
+    .or("score_a.gt.0,score_b.gt.0,points_obtained.gt.0")
     .limit(1);
 
   if (error) throw error;
